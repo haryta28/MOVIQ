@@ -1,22 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Phone, Video, MoreVertical, Paperclip, Camera, Mic, Send, CheckCheck, MapPin, Image as ImageIcon, RefreshCw, Info, Smile } from 'lucide-react';
-import { fieldTasksForBot } from '../../mock/mock';
+import { ArrowLeft, Phone, Video, MoreVertical, Paperclip, Camera, Mic, Send, CheckCheck, MapPin, Image as ImageIcon, RefreshCw, Info, Smile, Truck } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { MOVIQ_LOGO, MOVIQ_NAME } from '../../brand';
 
-const BotAvatar = () => (
-  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold shrink-0">gG</div>
-);
+const nowTime = () => {
+  const d = new Date();
+  return `${d.getHours() % 12 || 12}:${d.getMinutes().toString().padStart(2, '0')} ${d.getHours() >= 12 ? 'PM' : 'AM'}`;
+};
 
-const Msg = ({ from, children, time, delivered }) => {
+const Msg = ({ from, children, time }) => {
   const isBot = from === 'bot';
   return (
     <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} px-3`}>
-      <div className={`max-w-[78%] rounded-lg px-3 py-2 shadow-sm relative ${isBot ? 'bg-white text-slate-800' : 'bg-[#d9fdd3] text-slate-800'}`}>
+      <div className={`max-w-[80%] rounded-lg px-3 py-2 shadow-sm ${isBot ? 'bg-white text-slate-800' : 'bg-[#d9fdd3] text-slate-800'}`}>
         <div className="text-sm whitespace-pre-line">{children}</div>
         <div className="flex items-center gap-1 justify-end mt-1">
           <span className="text-[10px] text-slate-500">{time}</span>
-          {!isBot && <CheckCheck className="h-3 w-3 text-blue-500" />}
+          {!isBot && <CheckCheck className="h-3 w-3 text-red-500" />}
         </div>
       </div>
     </div>
@@ -27,141 +30,118 @@ const Bubble = ({ from, children }) => {
   const isBot = from === 'bot';
   return (
     <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} px-3`}>
-      <div className={`max-w-[80%] rounded-lg overflow-hidden shadow-sm ${isBot ? 'bg-white' : 'bg-[#d9fdd3]'}`}>
+      <div className={`max-w-[85%] rounded-lg overflow-hidden shadow-sm ${isBot ? 'bg-white' : 'bg-[#d9fdd3]'}`}>
         {children}
       </div>
     </div>
   );
 };
 
-const nowTime = () => {
-  const d = new Date();
-  return `${d.getHours() % 12 || 12}:${d.getMinutes().toString().padStart(2, '0')} ${d.getHours() >= 12 ? 'PM' : 'AM'}`;
-};
+const PHOTO_STEPS = [
+  { key: 'right', label: 'Right side', gradient: 'from-orange-400 to-rose-500' },
+  { key: 'left', label: 'Left side', gradient: 'from-emerald-400 to-teal-500' },
+  { key: 'back', label: 'Back angle', gradient: 'from-red-500 to-red-700' },
+];
 
 export default function WhatsAppBot() {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [step, setStep] = useState('welcome');
-  const [activeTask, setActiveTask] = useState(null);
+  const [step, setStep] = useState('greet'); // greet, form, photo-0, photo-1, photo-2, submit, done
+  const [form, setForm] = useState({ vehicle: '', driverName: '', driverPhone: '' });
+  const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef(null);
   const initRef = useRef(false);
 
   useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
-    // Kick off welcome sequence
-    setTimeout(() => pushBotMessage('Namaste 🙏 Welcome to *gOGig Field Assistant*'), 400);
-    setTimeout(() => pushBotMessage('I help you receive tasks, capture GPS-verified proofs and submit them — all here on WhatsApp.'), 1200);
-    setTimeout(() => pushBotMenu('welcome', ['📋 My Tasks Today', '📍 Check-In', '❓ Help & FAQs']), 2000);
-  }, []);
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, showForm]);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+    if (initRef.current) return;
+    initRef.current = true;
+    setTimeout(() => pushBot(`Namaste 🙏 Welcome to *${MOVIQ_NAME} Field Assistant*`), 400);
+    setTimeout(() => pushBot('I help you register vehicle branding proofs directly on WhatsApp — no app needed.'), 1200);
+    setTimeout(() => pushBot('Type *Hi* to begin. 👇'), 2000);
+  }, []);
 
   const push = (m) => setMessages(prev => [...prev, { ...m, time: nowTime(), id: Date.now() + Math.random() }]);
+  const pushBot = (text) => push({ from: 'bot', kind: 'text', text });
+  const pushUser = (text) => push({ from: 'user', kind: 'text', text });
+  const pushUserPhoto = (label, gradient) => push({ from: 'user', kind: 'photo', label, gradient });
+  const pushBotSummary = (data) => push({ from: 'bot', kind: 'vehicleCard', data });
 
-  const pushBotMessage = (text) => push({ from: 'bot', kind: 'text', text });
-  const pushUserMessage = (text) => push({ from: 'user', kind: 'text', text });
-  const pushBotMenu = (id, options) => push({ from: 'bot', kind: 'menu', menuId: id, options });
-  const pushBotTasks = () => push({ from: 'bot', kind: 'tasks' });
-  const pushBotTaskCard = (task) => push({ from: 'bot', kind: 'taskCard', task });
-  const pushUserPhoto = (label) => push({ from: 'user', kind: 'photo', label });
-  const pushBotLocation = (task) => push({ from: 'bot', kind: 'location', task });
+  const startFlow = () => {
+    pushUser('Hi');
+    setTimeout(() => pushBot(`Hello 👋 Great to have you on board!\n\nTo start, please share the vehicle & driver details.`), 600);
+    setTimeout(() => setShowForm(true), 1400);
+    setStep('form');
+  };
 
-  const handleMenu = (option, menuId) => {
-    pushUserMessage(option);
-    if (menuId === 'welcome') {
-      if (option.includes('Tasks')) {
-        setTimeout(() => pushBotMessage('You have *3 tasks* pending for today. Tap one to start.'), 500);
-        setTimeout(() => pushBotTasks(), 900);
-        setStep('task-list');
-      } else if (option.includes('Check-In')) {
-        setTimeout(() => pushBotMessage('✅ Check-in recorded at *09:14 AM*\n📍 Bengaluru, 12.9784, 77.5946\n\nHave a productive day, Ramesh! 💪'), 500);
-        setTimeout(() => pushBotMenu('post', ['📋 My Tasks Today', '🏠 Main Menu']), 1600);
-      } else {
-        setTimeout(() => pushBotMessage('*Common questions:*\n• Type /tasks to see your tasks\n• Type /submit to upload a proof\n• Type /help for support\n\nOur team responds within 15 mins during 9–19 hrs.'), 500);
-        setTimeout(() => pushBotMenu('post', ['🏠 Main Menu']), 1400);
-      }
-    } else if (menuId === 'task-detail') {
-      if (option.includes('Start')) {
-        setTimeout(() => pushBotMessage('Great! Let\'s start with *3-angle photography*. 📸\n\nStep 1/3: Take a *front-facing* photo of the installation.'), 500);
-        setStep('photo-1');
-      } else if (option.includes('Location')) {
-        setTimeout(() => pushBotLocation(activeTask), 400);
-      } else if (option.includes('Cancel')) {
-        setActiveTask(null);
-        setTimeout(() => pushBotMessage('Task cancelled. Choose another task or head back.'), 400);
-        setTimeout(() => pushBotMenu('welcome', ['📋 My Tasks Today', '🏠 Main Menu']), 900);
-      }
-    } else if (menuId === 'post') {
-      if (option.includes('Tasks')) {
-        setTimeout(() => pushBotTasks(), 400);
-        setStep('task-list');
-      } else {
-        setTimeout(() => pushBotMenu('welcome', ['📋 My Tasks Today', '📍 Check-In', '❓ Help & FAQs']), 400);
-        setStep('welcome');
-      }
-    } else if (menuId === 'submit') {
-      if (option.includes('Submit')) {
-        setUploading(true);
-        setTimeout(() => {
-          setUploading(false);
-          pushBotMessage('✅ *Submitted successfully!*\n\nTask ' + activeTask.code + ' has been sent for verification.\n📍 GPS captured: 12.9784, 77.5946\n🕒 Timestamp: ' + nowTime() + '\n📷 Photos: 3/3\n\nYour supervisor Kritika will review shortly.');
-        }, 1400);
-        setTimeout(() => pushBotMenu('post', ['📋 Next Task', '🏠 Main Menu']), 3000);
-        setStep('done');
-      } else if (option.includes('Retake')) {
-        setTimeout(() => pushBotMessage('No problem, take the photos again. Step 1/3: *Front-facing* photo.'), 400);
-        setStep('photo-1');
-      }
+  const submitForm = () => {
+    if (!form.vehicle.trim() || !form.driverName.trim() || !form.driverPhone.trim()) return;
+    pushUser(`🚚 *Vehicle*: ${form.vehicle.toUpperCase()}\n👤 *Driver*: ${form.driverName}\n📞 *Phone*: ${form.driverPhone}`);
+    setShowForm(false);
+    setTimeout(() => pushBot(`✅ Vehicle *${form.vehicle.toUpperCase()}* registered under driver *${form.driverName}*.\n\nNow let's capture 3-angle vehicle photos.`), 700);
+    setTimeout(() => pushBot(`📷 *Step 1 of 3*\nTap the camera icon and take the *${PHOTO_STEPS[0].label}* photo of the vehicle.`), 1700);
+    setStep('photo-0');
+  };
+
+  const handleCameraTap = () => {
+    if (step === 'photo-0') {
+      pushUserPhoto(PHOTO_STEPS[0].label, PHOTO_STEPS[0].gradient);
+      setTimeout(() => pushBot(`✅ ${PHOTO_STEPS[0].label} captured.\n📍 GPS verified (accuracy 4m)\n\n📷 *Step 2 of 3*\nNow take the *${PHOTO_STEPS[1].label}* photo.`), 700);
+      setStep('photo-1');
+    } else if (step === 'photo-1') {
+      pushUserPhoto(PHOTO_STEPS[1].label, PHOTO_STEPS[1].gradient);
+      setTimeout(() => pushBot(`✅ ${PHOTO_STEPS[1].label} captured.\n\n📷 *Step 3 of 3*\nFinally, take the *${PHOTO_STEPS[2].label}* photo.`), 700);
+      setStep('photo-2');
+    } else if (step === 'photo-2') {
+      pushUserPhoto(PHOTO_STEPS[2].label, PHOTO_STEPS[2].gradient);
+      setUploading(true);
+      setTimeout(() => {
+        setUploading(false);
+        push({ from: 'bot', kind: 'text', text: '🎉 *All 3 photos captured!*\n\n📸 3-angle photography ✅\n📍 GPS accuracy: 4m ✅\n🕒 EXIF timestamp ✅\n🔍 Anti-fraud check: PASSED' });
+      }, 1200);
+      setTimeout(() => pushBotSummary({ ...form, submittedAt: nowTime() }), 2600);
+      setTimeout(() => push({ from: 'bot', kind: 'menu', menuId: 'done', options: ['🚚 Register another vehicle', '👋 Exit'] }), 3600);
+      setStep('done');
     }
   };
 
-  const handleTaskSelect = (task) => {
-    setActiveTask(task);
-    pushUserMessage(`Selected: ${task.code}`);
-    setTimeout(() => pushBotTaskCard(task), 400);
-    setTimeout(() => pushBotMenu('task-detail', ['✅ Start Task', '📍 View Location', '❌ Cancel']), 1200);
-    setStep('task-detail');
-  };
-
-  const handlePhotoUpload = () => {
-    if (!activeTask) return;
-    if (step === 'photo-1') {
-      pushUserPhoto('Front view');
-      setTimeout(() => pushBotMessage('🔍 Photo received. GPS verified ✅ (Accuracy: 4m)\n\nStep 2/3: Now take a *left-side* photo.'), 700);
-      setStep('photo-2');
-    } else if (step === 'photo-2') {
-      pushUserPhoto('Left view');
-      setTimeout(() => pushBotMessage('✅ Left view captured.\n\nStep 3/3: Finally, a *right-side* photo.'), 600);
-      setStep('photo-3');
-    } else if (step === 'photo-3') {
-      pushUserPhoto('Right view');
-      setTimeout(() => pushBotMessage('🎉 All 3 photos captured!\n\n📸 3-angle photography ✅\n📍 GPS accuracy: 4m ✅\n🕒 EXIF timestamp ✅\n🔍 Anti-fraud check: PASSED\n\nReady to submit?'), 700);
-      setTimeout(() => pushBotMenu('submit', ['✅ Submit for review', '🔄 Retake photos']), 1600);
-      setStep('submit');
+  const handleMenu = (option) => {
+    pushUser(option);
+    if (option.includes('another')) {
+      setForm({ vehicle: '', driverName: '', driverPhone: '' });
+      setTimeout(() => pushBot('Great! Let\'s register the next vehicle. Please fill the form below.'), 600);
+      setTimeout(() => setShowForm(true), 1200);
+      setStep('form');
+    } else {
+      setTimeout(() => pushBot('Thank you for using Moviq 🙏\nYour proofs are safely stored. Have a great day!'), 500);
+      setStep('exit');
     }
   };
 
   const handleInputSend = () => {
-    if (!input.trim()) return;
     const text = input.trim();
-    pushUserMessage(text);
+    if (!text) return;
     setInput('');
+    if (step === 'greet' && /^(hi|hello|hey|start)/i.test(text)) {
+      startFlow();
+      return;
+    }
+    pushUser(text);
     setTimeout(() => {
-      if (text.toLowerCase().includes('task')) { pushBotTasks(); setStep('task-list'); }
-      else if (text.toLowerCase().includes('help')) pushBotMessage('Type /tasks to view your tasks or tap one of the buttons above. For urgent help, call +91 91084 29315.');
-      else pushBotMessage('I didn\'t catch that. Tap a button below or type /tasks, /submit, /help');
-    }, 700);
+      if (step === 'greet') pushBot('Please type *Hi* to begin the vehicle registration flow.');
+      else if (step === 'form') pushBot('Please fill in the form above with Vehicle Number, Driver Name & Phone.');
+      else if (step.startsWith('photo')) pushBot('Please tap the 📷 camera icon below to capture the photo.');
+      else pushBot('I didn\'t catch that. Type *Hi* to restart.');
+    }, 600);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 flex flex-col items-center py-8 px-4">
-      {/* Top bar with back to login */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-red-50 flex flex-col items-center py-8 px-4">
       <div className="w-full max-w-6xl flex items-center justify-between mb-6">
         <Button variant="ghost" onClick={() => navigate('/login')} className="gap-2"><ArrowLeft className="h-4 w-4" /> Back</Button>
         <div className="text-sm text-slate-500">Field Executive · WhatsApp Bot Simulator</div>
@@ -169,32 +149,32 @@ export default function WhatsAppBot() {
       </div>
 
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left info panel */}
+        {/* Info panel */}
         <div className="lg:col-span-1 space-y-4">
           <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold">gG</div>
+              <img src={MOVIQ_LOGO} alt="Moviq" className="h-12 w-12 object-contain" />
               <div>
-                <div className="font-bold text-slate-900">gOGig Field Assistant</div>
+                <div className="font-bold text-slate-900">{MOVIQ_NAME} Field Assistant</div>
                 <div className="text-xs text-emerald-600 font-medium">• Online · Verified Business</div>
               </div>
             </div>
-            <p className="text-sm text-slate-600 mt-4">Field executives receive & complete tasks entirely on WhatsApp. Zero training needed.</p>
+            <p className="text-sm text-slate-600 mt-4">Field agents register vehicle branding proofs on WhatsApp — no task assignment needed. Just walk up, chat, submit.</p>
             <div className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-emerald-600" /> GPS auto-captured with every photo</div>
-              <div className="flex items-center gap-2"><Camera className="h-4 w-4 text-emerald-600" /> 3-angle photography enforced</div>
-              <div className="flex items-center gap-2"><CheckCheck className="h-4 w-4 text-emerald-600" /> Anti-fraud detection built-in</div>
-              <div className="flex items-center gap-2"><RefreshCw className="h-4 w-4 text-emerald-600" /> Works offline, syncs later</div>
+              <div className="flex items-center gap-2"><Truck className="h-4 w-4 text-red-600" /> Dynamic vehicle registration</div>
+              <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-red-600" /> GPS auto-captured with every photo</div>
+              <div className="flex items-center gap-2"><Camera className="h-4 w-4 text-red-600" /> 3-angle photography enforced</div>
+              <div className="flex items-center gap-2"><CheckCheck className="h-4 w-4 text-red-600" /> Anti-fraud detection built-in</div>
             </div>
           </div>
 
           <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center gap-2 text-slate-800 font-semibold mb-2"><Info className="h-4 w-4" /> Try the flow</div>
+            <div className="flex items-center gap-2 text-slate-800 font-semibold mb-2"><Info className="h-4 w-4" /> How to try</div>
             <ol className="text-sm text-slate-600 space-y-2 list-decimal list-inside">
-              <li>Tap “📋 My Tasks Today”</li>
-              <li>Pick any task from the list</li>
-              <li>Tap “Start Task” and upload 3 photos via the camera icon</li>
-              <li>Submit for verification</li>
+              <li>Type <span className="font-mono bg-slate-100 px-1.5 rounded">Hi</span> in the message box and hit send</li>
+              <li>Fill the vehicle & driver form that appears</li>
+              <li>Tap the 📷 camera icon 3 times — Right, Left, Back</li>
+              <li>See your submission confirmation with GPS + fraud check</li>
             </ol>
           </div>
         </div>
@@ -202,15 +182,16 @@ export default function WhatsAppBot() {
         {/* Phone frame */}
         <div className="lg:col-span-2 flex justify-center">
           <div className="relative w-[360px] h-[720px] bg-slate-900 rounded-[3rem] shadow-2xl border-[10px] border-slate-900 overflow-hidden">
-            {/* Notch */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-32 bg-slate-900 rounded-b-2xl z-20" />
 
-            {/* WhatsApp header */}
+            {/* Header */}
             <div className="h-16 bg-[#075e54] text-white flex items-center gap-3 px-3 pt-4">
               <ArrowLeft className="h-5 w-5" />
-              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold">gG</div>
+              <div className="h-9 w-9 rounded-full bg-white/95 p-0.5 flex items-center justify-center">
+                <img src={MOVIQ_LOGO} alt="Moviq" className="h-full w-full object-contain" />
+              </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm truncate">gOGig Field Assistant</div>
+                <div className="font-semibold text-sm truncate">{MOVIQ_NAME} Field Assistant</div>
                 <div className="text-[11px] text-emerald-200">online</div>
               </div>
               <Video className="h-5 w-5 opacity-90" />
@@ -218,7 +199,7 @@ export default function WhatsAppBot() {
               <MoreVertical className="h-5 w-5 opacity-90" />
             </div>
 
-            {/* Chat body */}
+            {/* Chat */}
             <div
               ref={scrollRef}
               className="h-[556px] overflow-y-auto py-3 space-y-2 pb-4"
@@ -230,12 +211,50 @@ export default function WhatsAppBot() {
 
               {messages.map(m => {
                 if (m.kind === 'text') return <Msg key={m.id} from={m.from} time={m.time}>{m.text}</Msg>;
+                if (m.kind === 'photo') {
+                  return (
+                    <Bubble key={m.id} from="user">
+                      <div className="p-1">
+                        <div className={`h-40 w-56 rounded-md bg-gradient-to-br ${m.gradient} relative overflow-hidden`}>
+                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Truck className="h-10 w-10 text-white/80" /></div>
+                          <div className="absolute bottom-1 left-1 right-1 bg-black/50 text-white text-[10px] p-1 rounded flex items-center gap-1"><MapPin className="h-3 w-3" />12.978, 77.594</div>
+                        </div>
+                        <div className="flex items-center justify-between px-2 pt-1 pb-1">
+                          <span className="text-xs text-slate-600 font-medium">{m.label}</span>
+                          <span className="flex items-center gap-1 text-[10px] text-slate-500">{m.time} <CheckCheck className="h-3 w-3 text-red-500" /></span>
+                        </div>
+                      </div>
+                    </Bubble>
+                  );
+                }
+                if (m.kind === 'vehicleCard') {
+                  return (
+                    <Bubble key={m.id} from="bot">
+                      <div className="p-3 w-[270px]">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-8 w-8 rounded-md bg-red-50 flex items-center justify-center"><Truck className="h-4 w-4 text-red-600" /></div>
+                          <div className="font-bold text-slate-900 text-sm">Submission Complete ✅</div>
+                        </div>
+                        <div className="text-xs space-y-1 border-t pt-2">
+                          <div className="flex justify-between"><span className="text-slate-500">Vehicle</span><span className="font-semibold">{m.data.vehicle.toUpperCase()}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Driver</span><span className="font-semibold">{m.data.driverName}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Phone</span><span className="font-semibold">{m.data.driverPhone}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Photos</span><span className="font-semibold">3/3</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">GPS</span><span className="font-mono">12.978, 77.594</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Submitted</span><span className="font-semibold">{m.data.submittedAt}</span></div>
+                        </div>
+                        <div className="mt-2 text-[10px] text-emerald-700 bg-emerald-50 p-1.5 rounded text-center font-medium">Sent to your supervisor for review</div>
+                        <div className="text-[10px] text-slate-500 mt-1 text-right">{m.time}</div>
+                      </div>
+                    </Bubble>
+                  );
+                }
                 if (m.kind === 'menu') {
                   return (
                     <div key={m.id} className="px-3">
                       <div className="flex flex-col gap-1.5 max-w-[85%]">
                         {m.options.map((o, i) => (
-                          <button key={i} onClick={() => handleMenu(o, m.menuId)} className="bg-white text-emerald-700 text-sm font-medium py-2 px-3 rounded-lg shadow-sm border border-slate-100 hover:bg-emerald-50 text-left transition">
+                          <button key={i} onClick={() => handleMenu(o)} className="bg-white text-emerald-700 text-sm font-medium py-2 px-3 rounded-lg shadow-sm border border-slate-100 hover:bg-emerald-50 text-left transition">
                             {o}
                           </button>
                         ))}
@@ -243,81 +262,53 @@ export default function WhatsAppBot() {
                     </div>
                   );
                 }
-                if (m.kind === 'tasks') {
-                  return (
-                    <div key={m.id} className="px-3">
-                      <div className="bg-white rounded-lg shadow-sm p-2 max-w-[90%] space-y-2">
-                        {fieldTasksForBot.map(t => (
-                          <button key={t.code} onClick={() => handleTaskSelect(t)} className="w-full flex items-start gap-2 p-2 rounded-md hover:bg-emerald-50 text-left transition border border-transparent hover:border-emerald-200">
-                            <div className="h-9 w-9 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                              <MapPin className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-mono text-slate-500">{t.code}</div>
-                              <div className="text-sm font-semibold text-slate-900 truncate">{t.mediaType} · {t.unit}</div>
-                              <div className="text-xs text-slate-500 truncate">{t.address}</div>
-                              <div className="text-xs text-rose-600 font-medium mt-0.5">⏰ {t.deadline}</div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-                if (m.kind === 'taskCard') {
-                  const t = m.task;
-                  return (
-                    <Bubble key={m.id} from="bot">
-                      <div className="p-3 w-[260px]">
-                        <div className="text-xs font-mono text-slate-500">{t.code}</div>
-                        <div className="text-sm font-bold text-slate-900">{t.mediaType}</div>
-                        <div className="text-xs text-slate-600 mt-1">Unit: <span className="font-medium">{t.unit}</span></div>
-                        <div className="text-xs text-slate-600">City: <span className="font-medium">{t.city}</span></div>
-                        <div className="text-xs text-slate-600 mt-1">📍 {t.address}</div>
-                        <div className="text-xs text-rose-600 font-medium mt-2">⏰ Deadline: {t.deadline}</div>
-                        <div className="text-[10px] text-slate-500 mt-2 text-right">{m.time}</div>
-                      </div>
-                    </Bubble>
-                  );
-                }
-                if (m.kind === 'photo') {
-                  return (
-                    <Bubble key={m.id} from="user">
-                      <div className="p-1">
-                        <div className="h-40 w-56 rounded-md bg-gradient-to-br from-orange-400 to-rose-500 relative overflow-hidden">
-                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><ImageIcon className="h-8 w-8 text-white/80" /></div>
-                          <div className="absolute bottom-1 left-1 right-1 bg-black/50 text-white text-[10px] p-1 rounded flex items-center gap-1"><MapPin className="h-3 w-3" />12.978, 77.594</div>
-                        </div>
-                        <div className="flex items-center justify-between px-2 pt-1 pb-1">
-                          <span className="text-xs text-slate-600">{m.label}</span>
-                          <span className="flex items-center gap-1 text-[10px] text-slate-500">{m.time} <CheckCheck className="h-3 w-3 text-blue-500" /></span>
-                        </div>
-                      </div>
-                    </Bubble>
-                  );
-                }
-                if (m.kind === 'location') {
-                  return (
-                    <Bubble key={m.id} from="bot">
-                      <div className="p-1 w-56">
-                        <div className="h-32 rounded-md bg-gradient-to-br from-blue-100 to-blue-200 relative overflow-hidden">
-                          <div className="absolute inset-0 bg-grid opacity-30" />
-                          <div className="absolute inset-0 flex items-center justify-center"><MapPin className="h-8 w-8 text-rose-600 fill-rose-600" /></div>
-                        </div>
-                        <div className="p-2">
-                          <div className="text-xs font-semibold">{m.task?.address}</div>
-                          <div className="text-[10px] font-mono text-slate-500">12.9784, 77.5946</div>
-                          <div className="text-[10px] text-slate-500 text-right mt-1">{m.time}</div>
-                        </div>
-                      </div>
-                    </Bubble>
-                  );
-                }
                 return null;
               })}
 
+              {/* Inline form for vehicle registration */}
+              {showForm && (
+                <div className="px-3">
+                  <div className="bg-white rounded-lg shadow-sm p-3 max-w-[92%] space-y-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="h-7 w-7 rounded-md bg-red-50 flex items-center justify-center"><Truck className="h-4 w-4 text-red-600" /></div>
+                      <div className="text-xs font-semibold text-slate-800">Vehicle & Driver Details</div>
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-slate-500">Vehicle Number</Label>
+                      <Input
+                        value={form.vehicle}
+                        onChange={e => setForm({ ...form, vehicle: e.target.value })}
+                        placeholder="KA-05-AB-1234"
+                        className="h-8 text-sm mt-0.5 uppercase"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-slate-500">Driver Name</Label>
+                      <Input
+                        value={form.driverName}
+                        onChange={e => setForm({ ...form, driverName: e.target.value })}
+                        placeholder="Ramesh Kumar"
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-slate-500">Driver Phone</Label>
+                      <Input
+                        value={form.driverPhone}
+                        onChange={e => setForm({ ...form, driverPhone: e.target.value.replace(/[^0-9+ ]/g, '') })}
+                        placeholder="+91 98765 43210"
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <Button onClick={submitForm} className="w-full h-8 bg-red-600 hover:bg-red-700 text-white text-sm">
+                      Submit details
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {uploading && (
-                <div className="flex justify-start px-3"><div className="bg-white px-3 py-2 rounded-lg text-xs text-slate-500 shadow-sm inline-flex items-center gap-2"><RefreshCw className="h-3 w-3 animate-spin" /> Submitting to gOGig...</div></div>
+                <div className="flex justify-start px-3"><div className="bg-white px-3 py-2 rounded-lg text-xs text-slate-500 shadow-sm inline-flex items-center gap-2"><RefreshCw className="h-3 w-3 animate-spin" /> Submitting to Moviq...</div></div>
               )}
             </div>
 
@@ -333,12 +324,12 @@ export default function WhatsAppBot() {
                   className="flex-1 bg-transparent text-sm focus:outline-none"
                 />
                 <Paperclip className="h-4 w-4 text-slate-500" />
-                <button onClick={handlePhotoUpload} className="text-slate-500 hover:text-emerald-600" title="Take photo">
+                <button onClick={handleCameraTap} className="text-slate-500 hover:text-red-600" title="Take photo">
                   <Camera className="h-4 w-4" />
                 </button>
               </div>
               <button
-                onClick={input.trim() ? handleInputSend : handlePhotoUpload}
+                onClick={input.trim() ? handleInputSend : handleCameraTap}
                 className="h-10 w-10 rounded-full bg-[#25d366] text-white flex items-center justify-center hover:bg-[#22c55e] transition shrink-0"
               >
                 {input.trim() ? <Send className="h-4 w-4" /> : <Mic className="h-5 w-5" />}

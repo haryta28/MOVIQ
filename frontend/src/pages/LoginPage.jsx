@@ -5,12 +5,13 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card } from '../components/ui/card';
-import { MapPin, Shield, Building2, MessageCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Shield, Building2, MessageCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { MOVIQ_LOGO, MOVIQ_NAME, MOVIQ_TAGLINE } from '../brand';
 
 const roles = [
-  { key: 'admin', name: 'Platform Admin', desc: 'Manage all agencies & campaigns', icon: Shield, color: 'bg-blue-50 text-blue-700 border-blue-200', route: '/admin' },
-  { key: 'agency', name: 'Agency', desc: 'Manage your brand campaigns', icon: Building2, color: 'bg-indigo-50 text-indigo-700 border-indigo-200', route: '/agency' },
-  { key: 'field', name: 'Field Executive (WhatsApp)', desc: 'Submit tasks on WhatsApp bot', icon: MessageCircle, color: 'bg-green-50 text-green-700 border-green-200', route: '/whatsapp' },
+  { key: 'admin', name: 'Platform Admin', desc: 'Manage all agencies & campaigns', icon: Shield, color: 'bg-red-50 text-red-700 border-red-200', route: '/admin' },
+  { key: 'agency', name: 'Agency', desc: 'Manage your brand campaigns', icon: Building2, color: 'bg-rose-50 text-rose-700 border-rose-200', route: '/agency' },
+  { key: 'field', name: 'Field Executive (WhatsApp)', desc: 'Submit vehicle proofs on WhatsApp bot', icon: MessageCircle, color: 'bg-green-50 text-green-700 border-green-200', route: '/whatsapp' },
 ];
 
 export default function LoginPage() {
@@ -23,17 +24,14 @@ export default function LoginPage() {
   const handleLogin = (e) => {
     e.preventDefault();
     const role = roles.find(r => r.key === selected);
-    if (role.key === 'field') {
-      navigate('/whatsapp');
-      return;
-    }
+    if (role.key === 'field') { navigate('/whatsapp'); return; }
     login(role.key);
     navigate(role.route);
   };
 
   const prefill = (key) => {
     setSelected(key);
-    if (key === 'admin') { setEmail('admin@gogig.in'); setPassword('demo1234'); }
+    if (key === 'admin') { setEmail('admin@moviq.in'); setPassword('demo1234'); }
     else if (key === 'agency') { setEmail('saurav@brightads.in'); setPassword('demo1234'); }
     else { setEmail('ramesh@field.in'); setPassword('demo1234'); }
   };
@@ -41,42 +39,43 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen w-full flex">
       {/* Left panel */}
-      <div className="hidden lg:flex w-1/2 relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-12 flex-col justify-between overflow-hidden">
+      <div className="hidden lg:flex w-1/2 relative bg-gradient-to-br from-red-600 via-red-700 to-red-800 text-white p-12 flex-col justify-between overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-10" />
         <div className="relative z-10">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center">
-              <MapPin className="h-5 w-5" />
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-white/95 backdrop-blur flex items-center justify-center p-1 shadow-lg">
+              <img src={MOVIQ_LOGO} alt="Moviq" className="h-full w-full object-contain" />
             </div>
-            <span className="text-xl font-bold tracking-tight">gOGig</span>
+            <div>
+              <div className="text-2xl font-bold tracking-tight">{MOVIQ_NAME}</div>
+              <div className="text-xs text-red-200 -mt-0.5">{MOVIQ_TAGLINE}</div>
+            </div>
           </div>
         </div>
         <div className="relative z-10 space-y-6">
-          <h1 className="text-4xl font-extrabold leading-tight">Track offline campaigns with online precision.</h1>
-          <p className="text-blue-100 text-lg max-w-md">GPS-verified proofs, real-time dashboards, and WhatsApp-based field ops — all in one platform.</p>
+          <h1 className="text-4xl font-extrabold leading-tight">Track moving media with intelligent precision.</h1>
+          <p className="text-red-100 text-lg max-w-md">GPS-verified vehicle proofs, real-time dashboards, and WhatsApp-based field ops — all in one intelligent platform.</p>
           <div className="grid grid-cols-2 gap-4 max-w-md pt-4">
-            {[['14,598+', 'Tasks tracked daily'], ['1000+', 'Brands trust us'], ['400+', 'Cities covered'], ['100%', 'GPS verified']].map(([n, l]) => (
+            {[['14,598+', 'Vehicles tracked daily'], ['1000+', 'Brands trust us'], ['400+', 'Cities covered'], ['100%', 'GPS verified']].map(([n, l]) => (
               <div key={l} className="bg-white/10 backdrop-blur rounded-lg p-4 border border-white/10">
                 <div className="text-2xl font-bold">{n}</div>
-                <div className="text-sm text-blue-100">{l}</div>
+                <div className="text-sm text-red-100">{l}</div>
               </div>
             ))}
           </div>
         </div>
-        <div className="relative z-10 text-sm text-blue-100/80">ISO 27001 Certified · DPDP Compliant</div>
+        <div className="relative z-10 text-sm text-red-100/80">ISO 27001 Certified · DPDP Compliant</div>
       </div>
 
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-white">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg bg-blue-600 text-white flex items-center justify-center">
-              <MapPin className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold">gOGig</span>
+            <img src={MOVIQ_LOGO} alt="Moviq" className="h-10 w-10 object-contain" />
+            <span className="text-xl font-bold">{MOVIQ_NAME}</span>
           </div>
           <h2 className="text-3xl font-bold text-slate-900">Welcome back</h2>
-          <p className="text-slate-500 mt-1">Sign in to continue to your dashboard.</p>
+          <p className="text-slate-500 mt-1">Sign in to continue to your Moviq dashboard.</p>
 
           <div className="mt-8 space-y-2">
             <Label className="text-slate-700">Choose your role</Label>
@@ -88,7 +87,7 @@ export default function LoginPage() {
                   <button
                     key={r.key}
                     onClick={() => prefill(r.key)}
-                    className={`flex items-center gap-3 border rounded-lg p-3 text-left transition hover:border-blue-400 ${active ? 'border-blue-600 ring-2 ring-blue-100 bg-blue-50/40' : 'border-slate-200'}`}
+                    className={`flex items-center gap-3 border rounded-lg p-3 text-left transition hover:border-red-400 ${active ? 'border-red-600 ring-2 ring-red-100 bg-red-50/40' : 'border-slate-200'}`}
                   >
                     <div className={`h-9 w-9 rounded-md flex items-center justify-center border ${r.color}`}>
                       <Icon className="h-4 w-4" />
@@ -97,7 +96,7 @@ export default function LoginPage() {
                       <div className="font-medium text-slate-900 text-sm">{r.name}</div>
                       <div className="text-xs text-slate-500">{r.desc}</div>
                     </div>
-                    {active && <CheckCircle2 className="h-5 w-5 text-blue-600" />}
+                    {active && <CheckCircle2 className="h-5 w-5 text-red-600" />}
                   </button>
                 );
               })}
@@ -112,11 +111,11 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <button type="button" className="text-xs text-blue-600 hover:underline">Forgot?</button>
+                <button type="button" className="text-xs text-red-600 hover:underline">Forgot?</button>
               </div>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="mt-1" required />
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11">
+            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white h-11">
               Sign in <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </form>

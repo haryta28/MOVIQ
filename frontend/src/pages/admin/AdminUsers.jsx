@@ -21,7 +21,7 @@ export default function AdminUsers() {
       <PageHeader
         title="Users & Roles"
         description="Manage every user across admins, agencies, supervisors and field executives."
-        actions={<Button className="bg-blue-600 hover:bg-blue-700 text-white"><Plus className="h-4 w-4 mr-1" /> Invite user</Button>}
+        actions={<Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> Invite user</Button>}
       />
 
       <Tabs defaultValue="admin">
@@ -73,7 +73,7 @@ function UserTable({ rows, cols }) {
                   <td key={c} className="py-3 px-3">
                     {c === 'name' ? (
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center font-semibold text-xs">
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-500 to-indigo-500 text-white flex items-center justify-center font-semibold text-xs">
                           {r.name.split(' ').map(x => x[0]).join('').slice(0,2)}
                         </div>
                         <span className="font-medium text-slate-900">{r.name}</span>

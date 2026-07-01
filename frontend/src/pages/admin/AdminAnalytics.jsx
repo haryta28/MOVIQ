@@ -16,9 +16,9 @@ export default function AdminAnalytics() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: 'Tasks tracked', value: '14,598', delta: '+22%', icon: ListChecks, color: 'text-blue-600 bg-blue-50' },
+          { label: 'Tasks tracked', value: '14,598', delta: '+22%', icon: ListChecks, color: 'text-red-600 bg-red-50' },
           { label: 'GPS accuracy', value: '99.4%', delta: '+0.2%', icon: MapPin, color: 'text-emerald-600 bg-emerald-50' },
-          { label: 'Photos verified', value: '38,214', delta: '+31%', icon: Camera, color: 'text-indigo-600 bg-indigo-50' },
+          { label: 'Photos verified', value: '38,214', delta: '+31%', icon: Camera, color: 'text-red-600 bg-red-50' },
           { label: 'Fraud blocked', value: '1,284', delta: '+12%', icon: ShieldCheck, color: 'text-rose-600 bg-rose-50' },
         ].map((k) => (
           <Card key={k.label} className="p-5">
@@ -54,9 +54,9 @@ export default function AdminAnalytics() {
               <h3 className="font-semibold text-slate-900">Campaigns per month</h3>
               <p className="text-sm text-slate-500">Volume of active campaigns</p>
             </div>
-            <Users className="h-5 w-5 text-blue-600" />
+            <Users className="h-5 w-5 text-red-600" />
           </div>
-          <MiniBarChart data={monthlyStats} valueKey="campaigns" labelKey="month" color="bg-gradient-to-t from-blue-600 to-blue-400" />
+          <MiniBarChart data={monthlyStats} valueKey="campaigns" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />
         </Card>
       </div>
 
@@ -68,7 +68,7 @@ export default function AdminAnalytics() {
               <div key={c.city} className="flex items-center gap-3">
                 <div className="text-sm w-28 text-slate-700">{c.city}</div>
                 <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full bg-indigo-500" style={{ width: `${(c.tasks/3200)*100}%` }} />
+                  <div className="h-full bg-red-500" style={{ width: `${(c.tasks/3200)*100}%` }} />
                 </div>
                 <div className="text-sm font-semibold w-16 text-right">{c.tasks.toLocaleString()}</div>
               </div>

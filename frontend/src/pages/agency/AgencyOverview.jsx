@@ -18,7 +18,7 @@ export default function AgencyOverview() {
       <PageHeader
         title="Good morning, Saurav 👋"
         description="Here's what's happening across your campaigns today."
-        actions={<Link to="/agency/campaigns"><Button className="bg-indigo-600 hover:bg-indigo-700 text-white"><Plus className="h-4 w-4 mr-1" /> New campaign</Button></Link>}
+        actions={<Link to="/agency/campaigns"><Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> New campaign</Button></Link>}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -35,12 +35,12 @@ export default function AgencyOverview() {
               <h3 className="font-semibold text-slate-900">Your campaigns</h3>
               <p className="text-sm text-slate-500">Progress across your active work</p>
             </div>
-            <Link to="/agency/campaigns"><Button size="sm" variant="ghost" className="text-indigo-600">View all <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Button></Link>
+            <Link to="/agency/campaigns"><Button size="sm" variant="ghost" className="text-red-600">View all <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Button></Link>
           </div>
           <div className="space-y-4">
             {myCampaigns.map(c => (
               <div key={c.id} className="flex items-center gap-4">
-                <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold text-xs">
+                <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-red-500 to-purple-500 text-white flex items-center justify-center font-bold text-xs">
                   {c.brand.slice(0,2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -49,7 +49,7 @@ export default function AgencyOverview() {
                     <StatusBadge status={c.status} />
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5 mb-1.5">{c.brand} · {c.city} · {c.mediaType}</div>
-                  <ProgressBar value={c.completed} max={c.totalTasks} color="bg-indigo-600" />
+                  <ProgressBar value={c.completed} max={c.totalTasks} color="bg-red-600" />
                 </div>
               </div>
             ))}
@@ -88,7 +88,7 @@ export default function AgencyOverview() {
             <p className="text-sm text-slate-500">Task volume trend</p>
           </div>
         </div>
-        <MiniBarChart data={monthlyStats} valueKey="tasks" labelKey="month" color="bg-gradient-to-t from-indigo-600 to-indigo-400" />
+        <MiniBarChart data={monthlyStats} valueKey="tasks" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />
       </Card>
     </div>
   );

@@ -40,7 +40,7 @@ export default function AdminFraud() {
         </Card>
         <Card className="p-5">
           <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Savings (est.)</div>
-          <div className="text-3xl font-bold text-indigo-600 mt-1">₹ 42L</div>
+          <div className="text-3xl font-bold text-red-600 mt-1">₹ 42L</div>
           <div className="text-xs text-slate-500 mt-1">Prevented losses</div>
         </Card>
       </div>

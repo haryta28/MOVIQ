@@ -4,8 +4,8 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 
 export function KpiCard({ label, value, icon: Icon, delta, deltaLabel = 'vs last month', accent = 'blue' }) {
   const accentMap = {
-    blue: 'text-blue-600 bg-blue-50',
-    indigo: 'text-indigo-600 bg-indigo-50',
+    blue: 'text-red-600 bg-red-50',
+    indigo: 'text-red-600 bg-red-50',
     emerald: 'text-emerald-600 bg-emerald-50',
     amber: 'text-amber-600 bg-amber-50',
     rose: 'text-rose-600 bg-rose-50',
@@ -38,11 +38,11 @@ export function KpiCard({ label, value, icon: Icon, delta, deltaLabel = 'vs last
 
 export function StatusBadge({ status }) {
   const map = {
-    ongoing: 'bg-blue-50 text-blue-700 border-blue-200',
+    ongoing: 'bg-red-50 text-red-700 border-red-200',
     completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     pending: 'bg-slate-100 text-slate-700 border-slate-200',
     in_progress: 'bg-amber-50 text-amber-700 border-amber-200',
-    submitted: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    submitted: 'bg-red-50 text-red-700 border-red-200',
     approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     flagged: 'bg-rose-50 text-rose-700 border-rose-200',
     active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -60,7 +60,7 @@ export function StatusBadge({ status }) {
   );
 }
 
-export function ProgressBar({ value, max = 100, color = 'bg-blue-600' }) {
+export function ProgressBar({ value, max = 100, color = 'bg-red-600' }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
     <div className="w-full">
@@ -87,7 +87,7 @@ export function PageHeader({ title, description, actions }) {
   );
 }
 
-export function MiniBarChart({ data, valueKey, labelKey, color = 'bg-blue-500' }) {
+export function MiniBarChart({ data, valueKey, labelKey, color = 'bg-red-500' }) {
   const max = Math.max(...data.map(d => d[valueKey]));
   return (
     <div className="flex items-end gap-3 h-48">

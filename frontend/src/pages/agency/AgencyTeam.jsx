@@ -12,7 +12,7 @@ export default function AgencyTeam() {
       <PageHeader
         title="Field Team"
         description="Your on-ground team hierarchy: supervisors and field executives."
-        actions={<Button className="bg-indigo-600 hover:bg-indigo-700 text-white"><Plus className="h-4 w-4 mr-1" /> Add member</Button>}
+        actions={<Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> Add member</Button>}
       />
 
       <Tabs defaultValue="field">
@@ -53,7 +53,7 @@ export default function AgencyTeam() {
             {supervisors.map(s => (
               <Card key={s.id} className="p-5">
                 <div className="flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-purple-500 text-white flex items-center justify-center font-bold">
                     {s.name.split(' ').map(x => x[0]).join('').slice(0,2)}
                   </div>
                   <div className="flex-1 min-w-0">

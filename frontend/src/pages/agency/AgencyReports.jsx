@@ -16,7 +16,7 @@ export default function AgencyReports() {
       <PageHeader
         title="Reports"
         description="Auto-generated, client-ready reports in seconds."
-        actions={<Button className="bg-indigo-600 hover:bg-indigo-700 text-white"><FileBarChart className="h-4 w-4 mr-1" /> New report</Button>}
+        actions={<Button className="bg-red-600 hover:bg-red-700 text-white"><FileBarChart className="h-4 w-4 mr-1" /> New report</Button>}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -27,7 +27,7 @@ export default function AgencyReports() {
                 <div className="text-xs text-slate-500">{c.brand}</div>
                 <div className="font-semibold text-slate-900">{c.title}</div>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
                 <FileBarChart className="h-5 w-5" />
               </div>
             </div>
@@ -36,7 +36,7 @@ export default function AgencyReports() {
               <div><div className="text-xs text-slate-500">Done</div><div className="font-bold text-emerald-600">{c.completed}</div></div>
               <div><div className="text-xs text-slate-500">Rate</div><div className="font-bold">{Math.round((c.completed/c.totalTasks)*100)}%</div></div>
             </div>
-            <ProgressBar value={c.completed} max={c.totalTasks} color="bg-indigo-600" />
+            <ProgressBar value={c.completed} max={c.totalTasks} color="bg-red-600" />
             <div className="flex gap-2 mt-4">
               <Button size="sm" variant="outline" className="flex-1" onClick={() => download(c.title)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
               <Button size="sm" variant="outline" className="flex-1" onClick={() => download(c.title + ' Excel')}><Download className="h-3.5 w-3.5 mr-1" /> Excel</Button>
@@ -67,7 +67,7 @@ export default function AgencyReports() {
               <div key={c.city} className="flex items-center gap-3">
                 <div className="text-sm w-28">{c.city}</div>
                 <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full bg-indigo-500" style={{ width: `${c.completion}%` }} />
+                  <div className="h-full bg-red-500" style={{ width: `${c.completion}%` }} />
                 </div>
                 <div className="text-xs font-semibold w-20 text-right">{c.tasks.toLocaleString()} tasks</div>
               </div>
@@ -75,7 +75,7 @@ export default function AgencyReports() {
           </div>
         </div>
         <div className="flex gap-2 mt-6">
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => download('Campaign Summary')}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
+          <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={() => download('Campaign Summary')}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
           <Button variant="outline"><Share2 className="h-4 w-4 mr-1" /> Share Link</Button>
         </div>
       </Card>

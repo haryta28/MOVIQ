@@ -34,7 +34,7 @@ export default function AdminBilling() {
               <div className="text-sm text-slate-500">Paid subscriptions</div>
               <div className="text-2xl font-bold text-slate-900 mt-1">{activeSubs}</div>
             </div>
-            <div className="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><TrendingUp className="h-5 w-5" /></div>
+            <div className="h-10 w-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center"><TrendingUp className="h-5 w-5" /></div>
           </div>
           <div className="text-xs text-slate-500 mt-2">Enterprise + Growth</div>
         </Card>
@@ -54,8 +54,8 @@ export default function AdminBilling() {
         <h3 className="font-semibold text-slate-900 mb-4">Subscription plans</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((p, i) => (
-            <Card key={p.key} className={`p-6 relative ${i === 1 ? 'border-2 border-blue-500 shadow-md' : ''}`}>
-              {i === 1 && <div className="absolute -top-3 left-6 bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</div>}
+            <Card key={p.key} className={`p-6 relative ${i === 1 ? 'border-2 border-red-500 shadow-md' : ''}`}>
+              {i === 1 && <div className="absolute -top-3 left-6 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</div>}
               <div className="text-lg font-bold text-slate-900">{p.name}</div>
               <p className="text-sm text-slate-500 mt-1">{p.description}</p>
               <div className="mt-4">
@@ -68,7 +68,7 @@ export default function AdminBilling() {
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-600" /> GPS-verified proofs</li>
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-600" /> AI fraud detection</li>
               </ul>
-              <Button className={`w-full mt-6 ${i === 1 ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`} variant={i === 1 ? 'default' : 'outline'}>Edit plan</Button>
+              <Button className={`w-full mt-6 ${i === 1 ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`} variant={i === 1 ? 'default' : 'outline'}>Edit plan</Button>
             </Card>
           ))}
         </div>

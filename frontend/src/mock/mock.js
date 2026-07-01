@@ -1,7 +1,7 @@
 // Mock data for gOGig-style OOH campaign management platform
 
 export const currentUsers = {
-  admin: { id: 'u1', name: 'Deepak Bansal', email: 'admin@gogig.in', role: 'admin', avatar: 'DB' },
+  admin: { id: 'u1', name: 'Deepak Bansal', email: 'admin@moviq.in', role: 'admin', avatar: 'DB' },
   agency: { id: 'u2', name: 'Saurav Mehta', email: 'saurav@brightads.in', role: 'agency', avatar: 'SM', agencyName: 'BrightAds Media' },
   supervisor: { id: 'u3', name: 'Kritika Rao', email: 'kritika@brightads.in', role: 'supervisor', avatar: 'KR' },
   field: { id: 'u4', name: 'Ramesh Kumar', email: 'ramesh@field.in', role: 'field', avatar: 'RK' },

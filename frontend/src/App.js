@@ -11,7 +11,6 @@ import AdminCampaigns from './pages/admin/AdminCampaigns';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminFraud from './pages/admin/AdminFraud';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
-import AdminBilling from './pages/admin/AdminBilling';
 import AdminMediaTypes from './pages/admin/AdminMediaTypes';
 import AgencyOverview from './pages/agency/AgencyOverview';
 import AgencyCampaigns from './pages/agency/AgencyCampaigns';
@@ -47,7 +46,6 @@ function App() {
               <Route path="users" element={<AdminUsers />} />
               <Route path="fraud" element={<AdminFraud />} />
               <Route path="analytics" element={<AdminAnalytics />} />
-              <Route path="billing" element={<AdminBilling />} />
               <Route path="media-types" element={<AdminMediaTypes />} />
             </Route>
 

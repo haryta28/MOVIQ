@@ -35,7 +35,7 @@ export default function AgencyLiveMap() {
               {tasks.slice(0, 22).map((t, i) => {
                 const left = 5 + (i * 37) % 90;
                 const top = 8 + ((i * 53) % 82);
-                const color = t.status === 'approved' ? 'bg-emerald-500' : t.status === 'flagged' ? 'bg-rose-500' : t.status === 'submitted' ? 'bg-indigo-500' : 'bg-amber-500';
+                const color = t.status === 'approved' ? 'bg-emerald-500' : t.status === 'flagged' ? 'bg-rose-500' : t.status === 'submitted' ? 'bg-red-500' : 'bg-amber-500';
                 return (
                   <button
                     key={t.id}
@@ -51,7 +51,7 @@ export default function AgencyLiveMap() {
                 <div className="font-semibold text-slate-800 mb-2 flex items-center gap-1"><Layers className="h-3.5 w-3.5" /> Legend</div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Approved</div>
-                  <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Submitted</div>
+                  <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red-500" /> Submitted</div>
                   <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-500" /> In progress</div>
                   <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-rose-500" /> Flagged</div>
                 </div>

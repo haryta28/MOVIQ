@@ -24,7 +24,7 @@ code {
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 224 76% 48%;
+    --primary: 0 74% 51%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
@@ -36,8 +36,8 @@ code {
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 224 76% 48%;
-    --chart-1: 224 76% 48%;
+    --ring: 0 74% 51%;
+    --chart-1: 0 74% 51%;
     --chart-2: 173 58% 39%;
     --chart-3: 27 87% 67%;
     --chart-4: 262 83% 58%;

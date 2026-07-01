@@ -35,7 +35,7 @@ export default function AdminAgencies() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white"><Plus className="h-4 w-4 mr-1" /> Add agency</Button>
+              <Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> Add agency</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Onboard new agency</DialogTitle></DialogHeader>
@@ -59,7 +59,7 @@ export default function AdminAgencies() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={create}>Create</Button>
+                <Button className="bg-red-600 hover:bg-red-700" onClick={create}>Create</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -94,7 +94,7 @@ export default function AdminAgencies() {
                 <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center font-semibold text-xs">
+                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-red-500 to-indigo-500 text-white flex items-center justify-center font-semibold text-xs">
                         {a.name.slice(0,2).toUpperCase()}
                       </div>
                       <div>

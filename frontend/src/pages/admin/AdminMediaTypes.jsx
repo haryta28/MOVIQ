@@ -45,7 +45,7 @@ export default function AdminMediaTypes() {
       <Card className="p-5">
         <div className="flex items-center gap-3">
           <Input placeholder="e.g. Airport Advertising" value={newLabel} onChange={e => setNewLabel(e.target.value)} className="max-w-sm" />
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={add}><Plus className="h-4 w-4 mr-1" /> Add media type</Button>
+          <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={add}><Plus className="h-4 w-4 mr-1" /> Add media type</Button>
         </div>
       </Card>
 
@@ -57,7 +57,7 @@ export default function AdminMediaTypes() {
               const Icon = iconFor(t.label);
               return (
                 <Card key={t.key} className="p-4 flex items-center gap-3 hover:shadow-md transition">
-                  <div className="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">

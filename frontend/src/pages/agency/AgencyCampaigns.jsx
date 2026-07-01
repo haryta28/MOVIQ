@@ -31,7 +31,7 @@ export default function AgencyCampaigns() {
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white"><Plus className="h-4 w-4 mr-1" /> New campaign</Button>
+              <Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> New campaign</Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>Launch a new campaign</DialogTitle></DialogHeader>
@@ -59,7 +59,7 @@ export default function AgencyCampaigns() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={create}>Launch campaign</Button>
+                <Button className="bg-red-600 hover:bg-red-700" onClick={create}>Launch campaign</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -71,7 +71,7 @@ export default function AgencyCampaigns() {
           <Card key={c.id} className="p-5 hover:shadow-md transition">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-red-500 to-purple-500 text-white flex items-center justify-center font-bold">
                   {c.brand.slice(0,2).toUpperCase()}
                 </div>
                 <div>
@@ -86,10 +86,10 @@ export default function AgencyCampaigns() {
               <div className="flex items-center gap-1.5 text-slate-600"><Megaphone className="h-3.5 w-3.5 text-slate-400" />{c.mediaType}</div>
               <div className="flex items-center gap-1.5 text-slate-600"><IndianRupee className="h-3.5 w-3.5 text-slate-400" />{(c.budget/100000).toFixed(1)}L</div>
             </div>
-            <ProgressBar value={c.completed} max={c.totalTasks} color="bg-indigo-600" />
+            <ProgressBar value={c.completed} max={c.totalTasks} color="bg-red-600" />
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
               <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{c.startDate} → {c.endDate}</span>
-              <Button size="sm" variant="ghost" className="text-indigo-600">Details</Button>
+              <Button size="sm" variant="ghost" className="text-red-600">Details</Button>
             </div>
           </Card>
         ))}

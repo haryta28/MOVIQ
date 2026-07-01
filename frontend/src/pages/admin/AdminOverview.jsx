@@ -33,9 +33,9 @@ export default function AdminOverview() {
               <h3 className="font-semibold text-slate-900">Monthly performance</h3>
               <p className="text-sm text-slate-500">Campaigns × Tasks × Revenue</p>
             </div>
-            <Button variant="ghost" size="sm" className="text-blue-600">Last 6 months</Button>
+            <Button variant="ghost" size="sm" className="text-red-600">Last 6 months</Button>
           </div>
-          <MiniBarChart data={monthlyStats} valueKey="tasks" labelKey="month" color="bg-gradient-to-t from-blue-600 to-blue-400" />
+          <MiniBarChart data={monthlyStats} valueKey="tasks" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />
           <div className="grid grid-cols-3 gap-4 pt-4 mt-4 border-t border-slate-100">
             <div><div className="text-xs text-slate-500">Avg Campaigns/mo</div><div className="font-bold text-slate-900">58</div></div>
             <div><div className="text-xs text-slate-500">Total Tasks (6mo)</div><div className="font-bold text-slate-900">40.3K</div></div>
@@ -49,7 +49,7 @@ export default function AdminOverview() {
               <h3 className="font-semibold text-slate-900">Fraud alerts</h3>
               <p className="text-sm text-slate-500">Latest anomalies detected</p>
             </div>
-            <Link to="/admin/fraud"><Button size="sm" variant="ghost" className="text-blue-600">View all</Button></Link>
+            <Link to="/admin/fraud"><Button size="sm" variant="ghost" className="text-red-600">View all</Button></Link>
           </div>
           <div className="space-y-3">
             {fraudAlerts.slice(0, 4).map(a => (
@@ -78,12 +78,12 @@ export default function AdminOverview() {
               <h3 className="font-semibold text-slate-900">Top campaigns</h3>
               <p className="text-sm text-slate-500">By completion progress</p>
             </div>
-            <Link to="/admin/campaigns"><Button size="sm" variant="ghost" className="text-blue-600">All campaigns <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Button></Link>
+            <Link to="/admin/campaigns"><Button size="sm" variant="ghost" className="text-red-600">All campaigns <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Button></Link>
           </div>
           <div className="space-y-4">
             {campaigns.slice(0, 4).map(c => (
               <div key={c.id} className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center font-bold text-xs">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-red-500 to-indigo-500 text-white flex items-center justify-center font-bold text-xs">
                   {c.brand.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -105,7 +105,7 @@ export default function AdminOverview() {
               <h3 className="font-semibold text-slate-900">City coverage</h3>
               <p className="text-sm text-slate-500">Tasks executed by city</p>
             </div>
-            <Button size="sm" variant="ghost" className="text-blue-600">This month</Button>
+            <Button size="sm" variant="ghost" className="text-red-600">This month</Button>
           </div>
           <div className="space-y-3">
             {cityStats.map(c => (
@@ -114,7 +114,7 @@ export default function AdminOverview() {
                 <div className="text-sm font-medium w-28">{c.city}</div>
                 <div className="flex-1">
                   <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${c.completion}%` }} />
+                    <div className="h-full bg-red-500 rounded-full" style={{ width: `${c.completion}%` }} />
                   </div>
                 </div>
                 <div className="text-xs text-slate-500 w-16 text-right">{c.tasks.toLocaleString()}</div>
