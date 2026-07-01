@@ -1,17 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { ShieldAlert, CheckCircle2, X, MapPin, Image as ImageIcon, Clock } from 'lucide-react';
-import { fraudAlerts } from '../../mock/mock';
 import { toast } from '../../hooks/use-toast';
+import api from '../../api';
 
 export default function AdminFraud() {
-  const [alerts, setAlerts] = React.useState(fraudAlerts);
+  const [alerts, setAlerts] = useState([]);
 
-  const resolve = (id) => {
-    setAlerts(alerts.filter(a => a.id !== id));
-    toast({ title: 'Alert resolved', description: 'Alert marked as reviewed and closed.' });
+  useEffect(() => {
+    (async () => {
+      try { const r = await api.get('/fraud-alerts'); setAlerts(r.data); } catch (_) {}
+    })();
+  }, []);
+
+  const resolve = async (id) => {
+    try {
+      await api.post(`/fraud-alerts/${id}/resolve`);
+      setAlerts(alerts.filter(a => a.id !== id));
+      toast({ title: 'Alert resolved', description: 'Alert marked as reviewed and closed.' });
+    } catch (e) {
+      toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
+    }
   };
 
   return (

@@ -5,8 +5,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card } from '../components/ui/card';
-import { Shield, Building2, MessageCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Shield, Building2, MessageCircle, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { MOVIQ_LOGO, MOVIQ_NAME, MOVIQ_TAGLINE } from '../brand';
+import { toast } from '../hooks/use-toast';
 
 const roles = [
   { key: 'admin', name: 'Platform Admin', desc: 'Manage all agencies & campaigns', icon: Shield, color: 'bg-red-50 text-red-700 border-red-200', route: '/admin' },
@@ -15,30 +16,33 @@ const roles = [
 ];
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loading } = useAuth();
   const navigate = useNavigate();
   const [selected, setSelected] = useState('admin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     const role = roles.find(r => r.key === selected);
     if (role.key === 'field') { navigate('/whatsapp'); return; }
-    login(role.key);
-    navigate(role.route);
+    try {
+      const u = await login(email, password);
+      navigate(u.role === 'admin' ? '/admin' : '/agency');
+    } catch (err) {
+      toast({ title: 'Login failed', description: err?.response?.data?.detail || 'Please check credentials.' });
+    }
   };
 
   const prefill = (key) => {
     setSelected(key);
     if (key === 'admin') { setEmail('admin@moviq.in'); setPassword('demo1234'); }
     else if (key === 'agency') { setEmail('saurav@brightads.in'); setPassword('demo1234'); }
-    else { setEmail('ramesh@field.in'); setPassword('demo1234'); }
+    else { setEmail(''); setPassword(''); }
   };
 
   return (
     <div className="min-h-screen w-full flex">
-      {/* Left panel */}
       <div className="hidden lg:flex w-1/2 relative bg-gradient-to-br from-red-600 via-red-700 to-red-800 text-white p-12 flex-col justify-between overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-10" />
         <div className="relative z-10">
@@ -67,7 +71,6 @@ export default function LoginPage() {
         <div className="relative z-10 text-sm text-red-100/80">ISO 27001 Certified · DPDP Compliant</div>
       </div>
 
-      {/* Right panel */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-white">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden flex items-center gap-2">
@@ -86,6 +89,7 @@ export default function LoginPage() {
                 return (
                   <button
                     key={r.key}
+                    type="button"
                     onClick={() => prefill(r.key)}
                     className={`flex items-center gap-3 border rounded-lg p-3 text-left transition hover:border-red-400 ${active ? 'border-red-600 ring-2 ring-red-100 bg-red-50/40' : 'border-slate-200'}`}
                   >
@@ -106,23 +110,23 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.in" className="mt-1" required />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.in" className="mt-1" required={selected !== 'field'} disabled={selected === 'field'} />
             </div>
             <div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
                 <button type="button" className="text-xs text-red-600 hover:underline">Forgot?</button>
               </div>
-              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="mt-1" required />
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="mt-1" required={selected !== 'field'} disabled={selected === 'field'} />
             </div>
-            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white h-11">
-              Sign in <ArrowRight className="h-4 w-4 ml-1" />
+            <Button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white h-11">
+              {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in...</> : <>Sign in <ArrowRight className="h-4 w-4 ml-1" /></>}
             </Button>
           </form>
 
           <Card className="mt-6 p-3 bg-slate-50 border-dashed">
             <div className="text-xs text-slate-600">
-              <span className="font-semibold text-slate-800">Demo mode:</span> Click any role above to auto-fill and press Sign in.
+              <span className="font-semibold text-slate-800">Demo mode:</span> Click a role to auto-fill and press Sign in. Field Executive doesn't need login.
             </div>
           </Card>
         </div>

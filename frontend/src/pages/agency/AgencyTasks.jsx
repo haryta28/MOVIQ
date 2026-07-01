@@ -1,25 +1,30 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { Search, MapPin, Filter, ChevronRight } from 'lucide-react';
-import { tasks as tasksData } from '../../mock/mock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import api from '../../api';
 
 export default function AgencyTasks() {
+  const [tasks, setTasks] = useState([]);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [city, setCity] = useState('all');
   const [selected, setSelected] = useState(null);
 
-  const cities = ['all', ...Array.from(new Set(tasksData.map(t => t.city)))];
+  useEffect(() => {
+    (async () => { try { const r = await api.get('/tasks'); setTasks(r.data); } catch (_) {} })();
+  }, []);
 
-  const filtered = tasksData.filter(t =>
+  const cities = ['all', ...Array.from(new Set(tasks.map(t => t.city)))];
+
+  const filtered = tasks.filter(t =>
     (status === 'all' || t.status === status) &&
     (city === 'all' || t.city === city) &&
-    (t.taskCode.toLowerCase().includes(q.toLowerCase()) || t.address.toLowerCase().includes(q.toLowerCase()) || t.assignedTo.toLowerCase().includes(q.toLowerCase()))
+    (t.taskCode.toLowerCase().includes(q.toLowerCase()) || (t.address||'').toLowerCase().includes(q.toLowerCase()) || (t.assignedTo||'').toLowerCase().includes(q.toLowerCase()))
   );
 
   return (
@@ -71,7 +76,7 @@ export default function AgencyTasks() {
               </tr>
             </thead>
             <tbody>
-              {filtered.slice(0, 20).map(t => (
+              {filtered.slice(0, 30).map(t => (
                 <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(t)}>
                   <td className="py-3 px-3 font-mono text-xs text-slate-700">{t.taskCode}</td>
                   <td className="py-3 px-3 font-medium text-slate-900">{t.unitCode}</td>

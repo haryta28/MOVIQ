@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader, StatusBadge, ProgressBar } from '../../components/Shared';
 import { Search, Filter, Download, Eye, Megaphone } from 'lucide-react';
-import { campaigns } from '../../mock/mock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import api from '../../api';
 
 export default function AdminCampaigns() {
+  const [campaigns, setCampaigns] = useState([]);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
-  const filtered = campaigns.filter(c => (status === 'all' || c.status === status) && (c.title.toLowerCase().includes(q.toLowerCase()) || c.brand.toLowerCase().includes(q.toLowerCase()) || c.city.toLowerCase().includes(q.toLowerCase())));
+
+  useEffect(() => {
+    (async () => {
+      try { const r = await api.get('/campaigns'); setCampaigns(r.data); } catch (_) {}
+    })();
+  }, []);
+
+  const filtered = campaigns.filter(c =>
+    (status === 'all' || c.status === status) &&
+    (c.title.toLowerCase().includes(q.toLowerCase()) || (c.brand||'').toLowerCase().includes(q.toLowerCase()) || (c.city||'').toLowerCase().includes(q.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6">
@@ -43,8 +54,8 @@ export default function AdminCampaigns() {
             <Card key={c.id} className="p-5 hover:shadow-md transition">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-red-500 to-indigo-500 text-white flex items-center justify-center font-bold text-xs">
-                    {c.brand.slice(0,2).toUpperCase()}
+                  <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-bold text-xs">
+                    {(c.brand||'').slice(0,2).toUpperCase()}
                   </div>
                   <div>
                     <div className="font-semibold text-slate-900">{c.title}</div>
@@ -56,9 +67,9 @@ export default function AdminCampaigns() {
               <div className="grid grid-cols-3 gap-3 text-xs text-slate-500 mb-3">
                 <div><div className="text-slate-400">City</div><div className="text-slate-800 font-medium">{c.city}</div></div>
                 <div><div className="text-slate-400">Media</div><div className="text-slate-800 font-medium">{c.mediaType}</div></div>
-                <div><div className="text-slate-400">Budget</div><div className="text-slate-800 font-medium">₹ {(c.budget/100000).toFixed(1)}L</div></div>
+                <div><div className="text-slate-400">Budget</div><div className="text-slate-800 font-medium">₹ {((c.budget||0)/100000).toFixed(1)}L</div></div>
               </div>
-              <ProgressBar value={c.completed} max={c.totalTasks} color={c.status === 'completed' ? 'bg-emerald-500' : 'bg-red-600'} />
+              <ProgressBar value={c.completed || 0} max={c.totalTasks || 1} color={c.status === 'completed' ? 'bg-emerald-500' : 'bg-red-600'} />
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                 <div className="text-xs text-slate-500">{c.flagged > 0 ? <span className="text-rose-600 font-medium">{c.flagged} flagged</span> : 'No flags'}</div>
                 <Button size="sm" variant="ghost" className="text-red-600"><Eye className="h-3.5 w-3.5 mr-1" /> View</Button>

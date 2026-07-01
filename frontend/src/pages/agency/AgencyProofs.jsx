@@ -1,24 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
-import { Camera, MapPin, Clock, Download, X } from 'lucide-react';
-import { tasks } from '../../mock/mock';
+import { Camera, MapPin, Clock, Download } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent } from '../../components/ui/dialog';
+import api from '../../api';
 
 const gradients = [
   'from-orange-400 to-rose-500',
-  'from-red-500 to-cyan-500',
+  'from-red-500 to-red-600',
   'from-emerald-500 to-teal-500',
   'from-purple-500 to-pink-500',
   'from-amber-500 to-orange-500',
-  'from-red-500 to-blue-500',
+  'from-red-500 to-red-600',
 ];
 
 export default function AgencyProofs() {
+  const [tasks, setTasks] = useState([]);
   const [status, setStatus] = useState('all');
   const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    (async () => { try { const r = await api.get('/tasks'); setTasks(r.data); } catch (_) {} })();
+  }, []);
 
   const proofs = tasks.filter(t => t.photos > 0 && (status === 'all' || t.status === status));
 
@@ -45,7 +50,7 @@ export default function AgencyProofs() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {proofs.slice(0, 20).map((t, i) => (
+          {proofs.slice(0, 24).map((t, i) => (
             <div key={t.id} className="group cursor-pointer" onClick={() => setSelected(t)}>
               <div className={`aspect-square rounded-lg bg-gradient-to-br ${gradients[i % gradients.length]} relative overflow-hidden`}>
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition" />

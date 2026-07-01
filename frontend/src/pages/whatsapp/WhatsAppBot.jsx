@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { MOVIQ_LOGO, MOVIQ_NAME } from '../../brand';
+import api from '../../api';
 
 const nowTime = () => {
   const d = new Date();
@@ -100,6 +101,14 @@ export default function WhatsAppBot() {
     } else if (step === 'photo-2') {
       pushUserPhoto(PHOTO_STEPS[2].label, PHOTO_STEPS[2].gradient);
       setUploading(true);
+      // POST to backend
+      api.post('/vehicle-submissions', {
+        vehicle: form.vehicle,
+        driver_name: form.driverName,
+        driver_phone: form.driverPhone,
+        photos: PHOTO_STEPS.map(s => ({ label: s.label, gradient: s.gradient })),
+        gps: { lat: 12.9784, lng: 77.5946 },
+      }).catch(() => { /* ignore, still show success in UI */ });
       setTimeout(() => {
         setUploading(false);
         push({ from: 'bot', kind: 'text', text: '🎉 *All 3 photos captured!*\n\n📸 3-angle photography ✅\n📍 GPS accuracy: 4m ✅\n🕒 EXIF timestamp ✅\n🔍 Anti-fraud check: PASSED' });

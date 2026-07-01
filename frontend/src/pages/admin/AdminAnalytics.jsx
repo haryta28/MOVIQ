@@ -1,11 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { PageHeader, MiniBarChart } from '../../components/Shared';
 import { Button } from '../../components/ui/button';
-import { monthlyStats, cityStats, brands } from '../../mock/mock';
 import { TrendingUp, Users, ListChecks, ShieldCheck, Camera, MapPin } from 'lucide-react';
+import api from '../../api';
 
 export default function AdminAnalytics() {
+  const [analytics, setAnalytics] = useState({ monthlyStats: [], cityStats: [] });
+  const [brands, setBrands] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [an, br] = await Promise.all([api.get('/analytics/overview'), api.get('/brands')]);
+        setAnalytics(an.data);
+        setBrands(br.data);
+      } catch (_) {}
+    })();
+  }, []);
+
+  const maxCityTasks = Math.max(1, ...(analytics.cityStats.map(c => c.tasks) || [1]));
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -45,7 +60,7 @@ export default function AdminAnalytics() {
             </div>
             <TrendingUp className="h-5 w-5 text-emerald-600" />
           </div>
-          <MiniBarChart data={monthlyStats} valueKey="revenue" labelKey="month" color="bg-gradient-to-t from-emerald-500 to-emerald-300" />
+          {analytics.monthlyStats.length > 0 && <MiniBarChart data={analytics.monthlyStats} valueKey="revenue" labelKey="month" color="bg-gradient-to-t from-emerald-500 to-emerald-300" />}
         </Card>
 
         <Card className="p-6">
@@ -56,7 +71,7 @@ export default function AdminAnalytics() {
             </div>
             <Users className="h-5 w-5 text-red-600" />
           </div>
-          <MiniBarChart data={monthlyStats} valueKey="campaigns" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />
+          {analytics.monthlyStats.length > 0 && <MiniBarChart data={analytics.monthlyStats} valueKey="campaigns" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />}
         </Card>
       </div>
 
@@ -64,11 +79,11 @@ export default function AdminAnalytics() {
         <Card className="p-6">
           <h3 className="font-semibold text-slate-900 mb-4">Top cities by task volume</h3>
           <div className="space-y-3">
-            {cityStats.map(c => (
+            {(analytics.cityStats || []).map(c => (
               <div key={c.city} className="flex items-center gap-3">
                 <div className="text-sm w-28 text-slate-700">{c.city}</div>
                 <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full bg-red-500" style={{ width: `${(c.tasks/3200)*100}%` }} />
+                  <div className="h-full bg-red-500" style={{ width: `${(c.tasks/maxCityTasks)*100}%` }} />
                 </div>
                 <div className="text-sm font-semibold w-16 text-right">{c.tasks.toLocaleString()}</div>
               </div>
@@ -79,7 +94,7 @@ export default function AdminAnalytics() {
         <Card className="p-6">
           <h3 className="font-semibold text-slate-900 mb-4">Top brands by spend</h3>
           <div className="space-y-3">
-            {brands.sort((a,b) => b.spend - a.spend).map(b => (
+            {[...brands].sort((a,b) => b.spend - a.spend).map(b => (
               <div key={b.id} className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center text-lg">{b.logo}</div>
                 <div className="flex-1">

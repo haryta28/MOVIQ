@@ -1,29 +1,53 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { currentUsers } from '../mock/mock';
+import api from '../api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('gogig_user');
+    const stored = localStorage.getItem('moviq_user');
     return stored ? JSON.parse(stored) : null;
   });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) localStorage.setItem('gogig_user', JSON.stringify(user));
-    else localStorage.removeItem('gogig_user');
-  }, [user]);
+    // hydrate if token exists but user doesn't
+    const token = localStorage.getItem('moviq_token');
+    if (token && !user) {
+      api.get('/auth/me')
+        .then((r) => {
+          setUser(r.data);
+          localStorage.setItem('moviq_user', JSON.stringify(r.data));
+        })
+        .catch(() => {
+          localStorage.removeItem('moviq_token');
+          localStorage.removeItem('moviq_user');
+        });
+    }
+     
+  }, []);
 
-  const login = (role) => {
-    const u = currentUsers[role];
-    if (u) setUser(u);
-    return u;
+  const login = async (email, password) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      localStorage.setItem('moviq_token', data.token);
+      localStorage.setItem('moviq_user', JSON.stringify(data.user));
+      setUser(data.user);
+      return data.user;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('moviq_token');
+    localStorage.removeItem('moviq_user');
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

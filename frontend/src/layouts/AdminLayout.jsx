@@ -7,8 +7,9 @@ import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
-import { notifications } from '../mock/mock';
 import { MOVIQ_LOGO, MOVIQ_NAME } from '../brand';
+import { useEffect, useState } from 'react';
+import api from '../api';
 
 const nav = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -23,6 +24,11 @@ const nav = [
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    api.get('/notifications').then(r => setNotifications(r.data)).catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen flex bg-slate-50">

@@ -1,26 +1,41 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { PageHeader, StatusBadge, ProgressBar } from '../../components/Shared';
 import { Plus, Calendar, MapPin, IndianRupee, Megaphone } from 'lucide-react';
-import { campaigns as campaignsData, brands, mediaTypes } from '../../mock/mock';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from '../../hooks/use-toast';
+import api from '../../api';
 
 export default function AgencyCampaigns() {
-  const [campaigns, setCampaigns] = useState(campaignsData.filter(c => c.agencyId === 'a1'));
+  const [campaigns, setCampaigns] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [mediaTypes, setMediaTypes] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: '', brand: '', mediaType: '', city: '', totalTasks: 100, budget: 100000, startDate: '', endDate: '' });
 
-  const create = () => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const [c, b, m] = await Promise.all([api.get('/campaigns'), api.get('/brands'), api.get('/media-types')]);
+        setCampaigns(c.data); setBrands(b.data); setMediaTypes(m.data);
+      } catch (_) {}
+    })();
+  }, []);
+
+  const create = async () => {
     if (!form.title || !form.brand) { toast({ title: 'Missing fields' }); return; }
-    const c = { id: `c${Date.now()}`, ...form, agency: 'BrightAds Media', agencyId: 'a1', brandId: 'b1', completed: 0, flagged: 0, status: 'ongoing', spent: 0 };
-    setCampaigns([c, ...campaigns]);
-    setOpen(false);
-    toast({ title: 'Campaign created', description: `${c.title} is now live.` });
+    try {
+      const r = await api.post('/campaigns', form);
+      setCampaigns([r.data, ...campaigns]);
+      setOpen(false);
+      toast({ title: 'Campaign created', description: `${r.data.title} is now live.` });
+    } catch (e) {
+      toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
+    }
   };
 
   return (
@@ -71,8 +86,8 @@ export default function AgencyCampaigns() {
           <Card key={c.id} className="p-5 hover:shadow-md transition">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-red-500 to-purple-500 text-white flex items-center justify-center font-bold">
-                  {c.brand.slice(0,2).toUpperCase()}
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-bold">
+                  {(c.brand||'').slice(0,2).toUpperCase()}
                 </div>
                 <div>
                   <div className="font-semibold text-slate-900">{c.title}</div>
@@ -84,9 +99,9 @@ export default function AgencyCampaigns() {
             <div className="grid grid-cols-3 gap-3 text-xs my-3">
               <div className="flex items-center gap-1.5 text-slate-600"><MapPin className="h-3.5 w-3.5 text-slate-400" />{c.city}</div>
               <div className="flex items-center gap-1.5 text-slate-600"><Megaphone className="h-3.5 w-3.5 text-slate-400" />{c.mediaType}</div>
-              <div className="flex items-center gap-1.5 text-slate-600"><IndianRupee className="h-3.5 w-3.5 text-slate-400" />{(c.budget/100000).toFixed(1)}L</div>
+              <div className="flex items-center gap-1.5 text-slate-600"><IndianRupee className="h-3.5 w-3.5 text-slate-400" />{((c.budget||0)/100000).toFixed(1)}L</div>
             </div>
-            <ProgressBar value={c.completed} max={c.totalTasks} color="bg-red-600" />
+            <ProgressBar value={c.completed || 0} max={c.totalTasks || 1} color="bg-red-600" />
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
               <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{c.startDate} → {c.endDate}</span>
               <Button size="sm" variant="ghost" className="text-red-600">Details</Button>

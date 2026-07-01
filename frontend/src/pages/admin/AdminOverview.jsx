@@ -1,15 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { KpiCard, StatusBadge, PageHeader, MiniBarChart, ProgressBar } from '../../components/Shared';
 import { Building2, Megaphone, ListChecks, IndianRupee, ShieldAlert, MapPin, ArrowUpRight } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { agencies, campaigns, fraudAlerts, monthlyStats, cityStats } from '../../mock/mock';
 import { Link } from 'react-router-dom';
+import api from '../../api';
 
 export default function AdminOverview() {
-  const totalRevenue = agencies.reduce((s, a) => s + a.revenue, 0);
-  const totalTasks = campaigns.reduce((s, c) => s + c.totalTasks, 0);
-  const completedTasks = campaigns.reduce((s, c) => s + c.completed, 0);
+  const [agencies, setAgencies] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [fraudAlerts, setFraudAlerts] = useState([]);
+  const [analytics, setAnalytics] = useState({ monthlyStats: [], cityStats: [], kpis: {} });
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [a, c, f, an] = await Promise.all([
+          api.get('/agencies'),
+          api.get('/campaigns'),
+          api.get('/fraud-alerts'),
+          api.get('/analytics/overview'),
+        ]);
+        setAgencies(a.data);
+        setCampaigns(c.data);
+        setFraudAlerts(f.data);
+        setAnalytics(an.data);
+      } catch (e) { /* ignore */ }
+    })();
+  }, []);
+
+  const kpis = analytics.kpis || {};
 
   return (
     <div className="space-y-6">
@@ -20,10 +40,10 @@ export default function AdminOverview() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Active Agencies" value={agencies.filter(a => a.status === 'active').length} icon={Building2} delta={12} accent="blue" />
-        <KpiCard label="Live Campaigns" value={campaigns.filter(c => c.status === 'ongoing').length} icon={Megaphone} delta={8} accent="indigo" />
-        <KpiCard label="Tasks Executed" value={completedTasks.toLocaleString()} icon={ListChecks} delta={22} accent="emerald" />
-        <KpiCard label="MRR (₹)" value={`₹ ${(totalRevenue/100000).toFixed(1)}L`} icon={IndianRupee} delta={16} accent="violet" />
+        <KpiCard label="Active Agencies" value={kpis.activeAgencies || 0} icon={Building2} delta={12} accent="blue" />
+        <KpiCard label="Live Campaigns" value={kpis.liveCampaigns || 0} icon={Megaphone} delta={8} accent="indigo" />
+        <KpiCard label="Tasks Executed" value={(kpis.tasksExecuted || 0).toLocaleString()} icon={ListChecks} delta={22} accent="emerald" />
+        <KpiCard label="MRR (₹)" value={`₹ ${((kpis.totalRevenue || 0)/100000).toFixed(1)}L`} icon={IndianRupee} delta={16} accent="violet" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -35,7 +55,9 @@ export default function AdminOverview() {
             </div>
             <Button variant="ghost" size="sm" className="text-red-600">Last 6 months</Button>
           </div>
-          <MiniBarChart data={monthlyStats} valueKey="tasks" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />
+          {analytics.monthlyStats.length > 0 && (
+            <MiniBarChart data={analytics.monthlyStats} valueKey="tasks" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />
+          )}
           <div className="grid grid-cols-3 gap-4 pt-4 mt-4 border-t border-slate-100">
             <div><div className="text-xs text-slate-500">Avg Campaigns/mo</div><div className="font-bold text-slate-900">58</div></div>
             <div><div className="text-xs text-slate-500">Total Tasks (6mo)</div><div className="font-bold text-slate-900">40.3K</div></div>
@@ -83,8 +105,8 @@ export default function AdminOverview() {
           <div className="space-y-4">
             {campaigns.slice(0, 4).map(c => (
               <div key={c.id} className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-red-500 to-indigo-500 text-white flex items-center justify-center font-bold text-xs">
-                  {c.brand.slice(0, 2).toUpperCase()}
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-red-500 to-red-500 text-white flex items-center justify-center font-bold text-xs">
+                  {c.brand?.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
@@ -108,7 +130,7 @@ export default function AdminOverview() {
             <Button size="sm" variant="ghost" className="text-red-600">This month</Button>
           </div>
           <div className="space-y-3">
-            {cityStats.map(c => (
+            {(analytics.cityStats || []).map(c => (
               <div key={c.city} className="flex items-center gap-3">
                 <MapPin className="h-4 w-4 text-slate-400" />
                 <div className="text-sm font-medium w-28">{c.city}</div>

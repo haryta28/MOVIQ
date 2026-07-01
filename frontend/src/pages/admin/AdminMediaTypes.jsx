@@ -1,39 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader } from '../../components/Shared';
-import { mediaTypes } from '../../mock/mock';
 import { Plus, Layers, Bus, Car, Building, Home, ShoppingBag, Trash2 } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
+import api from '../../api';
 
 const iconFor = (label) => {
-  if (label.toLowerCase().includes('bus')) return Bus;
-  if (label.toLowerCase().includes('auto') || label.toLowerCase().includes('cab')) return Car;
-  if (label.toLowerCase().includes('mall') || label.toLowerCase().includes('billboard')) return Building;
-  if (label.toLowerCase().includes('society')) return Home;
-  if (label.toLowerCase().includes('shop') || label.toLowerCase().includes('retail')) return ShoppingBag;
+  const l = label.toLowerCase();
+  if (l.includes('bus')) return Bus;
+  if (l.includes('auto') || l.includes('cab')) return Car;
+  if (l.includes('mall') || l.includes('billboard')) return Building;
+  if (l.includes('society')) return Home;
+  if (l.includes('shop') || l.includes('retail')) return ShoppingBag;
   return Layers;
 };
 
 export default function AdminMediaTypes() {
-  const [types, setTypes] = useState(mediaTypes);
+  const [types, setTypes] = useState([]);
   const [newLabel, setNewLabel] = useState('');
 
-  const groups = types.reduce((acc, t) => {
-    acc[t.category] = acc[t.category] || [];
-    acc[t.category].push(t);
-    return acc;
-  }, {});
+  useEffect(() => { load(); }, []);
+  const load = async () => { try { const r = await api.get('/media-types'); setTypes(r.data); } catch (_) {} };
 
-  const add = () => {
+  const groups = types.reduce((acc, t) => { acc[t.category] = acc[t.category] || []; acc[t.category].push(t); return acc; }, {});
+
+  const add = async () => {
     if (!newLabel.trim()) return;
-    setTypes([...types, { key: newLabel.toLowerCase().replace(/\s+/g,'_'), label: newLabel, category: 'Custom' }]);
-    setNewLabel('');
-    toast({ title: 'Media type added', description: `"${newLabel}" is now available for campaigns.` });
+    try {
+      const r = await api.post('/media-types', { label: newLabel, category: 'Custom' });
+      setTypes([...types, r.data]);
+      toast({ title: 'Media type added', description: `"${r.data.label}" is now available.` });
+      setNewLabel('');
+    } catch (e) {
+      toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
+    }
   };
 
-  const remove = (key) => setTypes(types.filter(t => t.key !== key));
+  const remove = async (key) => {
+    try {
+      await api.delete(`/media-types/${key}`);
+      setTypes(types.filter(t => t.key !== key));
+    } catch (e) {
+      toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
+    }
+  };
 
   return (
     <div className="space-y-6">

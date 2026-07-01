@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { MapPin, Layers, Calendar, Filter } from 'lucide-react';
-import { tasks, cityStats } from '../../mock/mock';
+import api from '../../api';
 
 export default function AgencyLiveMap() {
+  const [tasks, setTasks] = useState([]);
+  const [cityStats, setCityStats] = useState([]);
   const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [t, an] = await Promise.all([api.get('/tasks'), api.get('/analytics/overview')]);
+        setTasks(t.data); setCityStats(an.data.cityStats || []);
+      } catch (_) {}
+    })();
+  }, []);
 
   const totalToday = tasks.filter(t => t.status !== 'pending').length;
   const flagged = tasks.filter(t => t.status === 'flagged').length;
@@ -28,8 +39,7 @@ export default function AgencyLiveMap() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 p-0 overflow-hidden">
-          <div className="h-[520px] relative bg-gradient-to-br from-blue-50 to-indigo-100">
-            {/* Fake map with grid & pins */}
+          <div className="h-[520px] relative bg-gradient-to-br from-red-50 to-red-100">
             <div className="absolute inset-0 bg-grid opacity-40" />
             <div className="absolute inset-0">
               {tasks.slice(0, 22).map((t, i) => {

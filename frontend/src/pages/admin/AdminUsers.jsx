@@ -1,20 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { Plus, Search, Shield, Building2, UserCog, User } from 'lucide-react';
-import { agencies, fieldExecutives, supervisors, currentUsers } from '../../mock/mock';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import api from '../../api';
 
 export default function AdminUsers() {
   const [q, setQ] = useState('');
+  const [tab, setTab] = useState('admin');
+  const [rows, setRows] = useState({ admin: [], agency: [], supervisor: [], field: [] });
 
-  const adminUsers = [
-    { id: 'ad1', name: 'Deepak Bansal', email: 'admin@gogig.in', role: 'Super Admin', status: 'active' },
-    { id: 'ad2', name: 'Anjali Sharma', email: 'anjali@gogig.in', role: 'Operations', status: 'active' },
-    { id: 'ad3', name: 'Rohan Iyer', email: 'rohan@gogig.in', role: 'Support', status: 'active' },
-  ];
+  useEffect(() => {
+    (async () => {
+      const roles = ['admin', 'agency', 'supervisor', 'field'];
+      const results = await Promise.all(roles.map(r => api.get(`/users?role=${r}`).catch(() => ({ data: [] }))));
+      const next = {};
+      roles.forEach((r, i) => { next[r] = results[i].data; });
+      setRows(next);
+    })();
+  }, []);
+
+  const filter = (arr) => arr.filter(u => (u.name || '').toLowerCase().includes(q.toLowerCase()));
 
   return (
     <div className="space-y-6">
@@ -24,7 +32,7 @@ export default function AdminUsers() {
         actions={<Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> Invite user</Button>}
       />
 
-      <Tabs defaultValue="admin">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="bg-slate-100">
           <TabsTrigger value="admin" className="gap-2"><Shield className="h-4 w-4" /> Platform Admins</TabsTrigger>
           <TabsTrigger value="agency" className="gap-2"><Building2 className="h-4 w-4" /> Agency Heads</TabsTrigger>
@@ -38,16 +46,16 @@ export default function AdminUsers() {
         </div>
 
         <TabsContent value="admin" className="mt-4">
-          <UserTable rows={adminUsers.filter(u => u.name.toLowerCase().includes(q.toLowerCase()))} cols={['name', 'email', 'role', 'status']} />
+          <UserTable rows={filter(rows.admin)} cols={['name', 'email', 'role', 'status']} />
         </TabsContent>
         <TabsContent value="agency" className="mt-4">
-          <UserTable rows={agencies.filter(a => a.head.toLowerCase().includes(q.toLowerCase())).map(a => ({ id: a.id, name: a.head, email: a.email, agency: a.name, status: a.status }))} cols={['name', 'email', 'agency', 'status']} />
+          <UserTable rows={filter(rows.agency)} cols={['name', 'email', 'agency', 'status']} />
         </TabsContent>
         <TabsContent value="supervisor" className="mt-4">
-          <UserTable rows={supervisors.filter(s => s.name.toLowerCase().includes(q.toLowerCase())).map(s => ({ id: s.id, name: s.name, email: s.email, city: s.city, team: `${s.teamSize} executives`, status: 'active' }))} cols={['name', 'email', 'city', 'team', 'status']} />
+          <UserTable rows={filter(rows.supervisor).map(s => ({ ...s, team: `${s.teamSize} executives`, status: 'active' }))} cols={['name', 'email', 'city', 'team', 'status']} />
         </TabsContent>
         <TabsContent value="field" className="mt-4">
-          <UserTable rows={fieldExecutives.filter(f => f.name.toLowerCase().includes(q.toLowerCase())).map(f => ({ id: f.id, name: f.name, phone: f.phone, city: f.city, tasksDone: f.tasksDone, quality: `${f.avgQuality}%`, status: f.status }))} cols={['name', 'phone', 'city', 'tasksDone', 'quality', 'status']} />
+          <UserTable rows={filter(rows.field).map(f => ({ ...f, quality: `${f.avgQuality}%` }))} cols={['name', 'phone', 'city', 'tasksDone', 'quality', 'status']} />
         </TabsContent>
       </Tabs>
     </div>
@@ -73,8 +81,8 @@ function UserTable({ rows, cols }) {
                   <td key={c} className="py-3 px-3">
                     {c === 'name' ? (
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-500 to-indigo-500 text-white flex items-center justify-center font-semibold text-xs">
-                          {r.name.split(' ').map(x => x[0]).join('').slice(0,2)}
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-semibold text-xs">
+                          {(r.name||'').split(' ').map(x => x[0]).join('').slice(0,2)}
                         </div>
                         <span className="font-medium text-slate-900">{r.name}</span>
                       </div>

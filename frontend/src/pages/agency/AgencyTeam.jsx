@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { Plus, Phone, MapPin, ListChecks, UserCog, User } from 'lucide-react';
-import { fieldExecutives, supervisors } from '../../mock/mock';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import api from '../../api';
 
 export default function AgencyTeam() {
+  const [field, setField] = useState([]);
+  const [supers, setSupers] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [f, s] = await Promise.all([api.get('/users?role=field'), api.get('/users?role=supervisor')]);
+        setField(f.data); setSupers(s.data);
+      } catch (_) {}
+    })();
+  }, []);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -17,13 +29,13 @@ export default function AgencyTeam() {
 
       <Tabs defaultValue="field">
         <TabsList className="bg-slate-100">
-          <TabsTrigger value="field" className="gap-2"><User className="h-4 w-4" /> Field Executives ({fieldExecutives.length})</TabsTrigger>
-          <TabsTrigger value="supervisor" className="gap-2"><UserCog className="h-4 w-4" /> Supervisors ({supervisors.length})</TabsTrigger>
+          <TabsTrigger value="field" className="gap-2"><User className="h-4 w-4" /> Field Executives ({field.length})</TabsTrigger>
+          <TabsTrigger value="supervisor" className="gap-2"><UserCog className="h-4 w-4" /> Supervisors ({supers.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="field" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fieldExecutives.map(f => (
+            {field.map(f => (
               <Card key={f.id} className="p-5 hover:shadow-md transition">
                 <div className="flex items-start gap-3">
                   <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center font-bold">
@@ -50,10 +62,10 @@ export default function AgencyTeam() {
 
         <TabsContent value="supervisor" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {supervisors.map(s => (
+            {supers.map(s => (
               <Card key={s.id} className="p-5">
                 <div className="flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-purple-500 text-white flex items-center justify-center font-bold">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-bold">
                     {s.name.split(' ').map(x => x[0]).join('').slice(0,2)}
                   </div>
                   <div className="flex-1 min-w-0">

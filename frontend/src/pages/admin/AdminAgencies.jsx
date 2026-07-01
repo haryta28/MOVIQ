@@ -1,30 +1,43 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { Plus, Search, MoreHorizontal, Building2, MapPin, Users, Megaphone } from 'lucide-react';
-import { agencies as agenciesData } from '../../mock/mock';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from '../../hooks/use-toast';
+import api from '../../api';
 
 export default function AdminAgencies() {
-  const [agencies, setAgencies] = useState(agenciesData);
+  const [agencies, setAgencies] = useState([]);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', head: '', email: '', phone: '', city: '', plan: 'Growth' });
 
-  const filtered = agencies.filter(a => a.name.toLowerCase().includes(q.toLowerCase()) || a.city.toLowerCase().includes(q.toLowerCase()));
+  const fetchAgencies = async () => {
+    try { const r = await api.get('/agencies'); setAgencies(r.data); } catch (_) {}
+  };
 
-  const create = () => {
+  useEffect(() => { fetchAgencies(); }, []);
+
+  const filtered = agencies.filter(a =>
+    a.name.toLowerCase().includes(q.toLowerCase()) ||
+    (a.city || '').toLowerCase().includes(q.toLowerCase())
+  );
+
+  const create = async () => {
     if (!form.name || !form.email) { toast({ title: 'Missing fields', description: 'Name and email are required.' }); return; }
-    const newA = { id: `a${Date.now()}`, ...form, campaigns: 0, activeUsers: 1, status: 'trial', revenue: 0, joinedAt: new Date().toISOString().slice(0,10) };
-    setAgencies([newA, ...agencies]);
-    setOpen(false);
-    setForm({ name: '', head: '', email: '', phone: '', city: '', plan: 'Growth' });
-    toast({ title: 'Agency onboarded', description: `${newA.name} is now active on ${newA.plan} plan.` });
+    try {
+      const r = await api.post('/agencies', form);
+      setAgencies([r.data, ...agencies]);
+      setOpen(false);
+      setForm({ name: '', head: '', email: '', phone: '', city: '', plan: 'Growth' });
+      toast({ title: 'Agency onboarded', description: `${r.data.name} is now active on ${r.data.plan} plan.` });
+    } catch (e) {
+      toast({ title: 'Failed to create', description: e?.response?.data?.detail || 'Try again.' });
+    }
   };
 
   return (
@@ -94,7 +107,7 @@ export default function AdminAgencies() {
                 <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-red-500 to-indigo-500 text-white flex items-center justify-center font-semibold text-xs">
+                      <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-red-500 to-red-500 text-white flex items-center justify-center font-semibold text-xs">
                         {a.name.slice(0,2).toUpperCase()}
                       </div>
                       <div>
@@ -108,7 +121,7 @@ export default function AdminAgencies() {
                   <td className="py-3 px-3"><span className="inline-flex text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">{a.plan}</span></td>
                   <td className="py-3 px-3 text-slate-700"><span className="inline-flex items-center gap-1"><Megaphone className="h-3 w-3 text-slate-400" />{a.campaigns}</span></td>
                   <td className="py-3 px-3 text-slate-700"><span className="inline-flex items-center gap-1"><Users className="h-3 w-3 text-slate-400" />{a.activeUsers}</span></td>
-                  <td className="py-3 px-3 font-semibold text-slate-900">₹ {(a.revenue/100000).toFixed(1)}L</td>
+                  <td className="py-3 px-3 font-semibold text-slate-900">₹ {((a.revenue||0)/100000).toFixed(1)}L</td>
                   <td className="py-3 px-3"><StatusBadge status={a.status} /></td>
                   <td className="py-3 px-3"><Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></td>
                 </tr>
