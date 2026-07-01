@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -104,7 +105,9 @@ export default function AgencyCampaigns() {
             <ProgressBar value={c.completed || 0} max={c.totalTasks || 1} color="bg-red-600" />
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
               <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{c.startDate} → {c.endDate}</span>
-              <Button size="sm" variant="ghost" className="text-red-600">Details</Button>
+              <Link to={`/agency/campaigns/${c.id}`}>
+                <Button size="sm" variant="ghost" className="text-red-600">Details</Button>
+              </Link>
             </div>
           </Card>
         ))}

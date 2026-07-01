@@ -8,8 +8,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { MOVIQ_LOGO, MOVIQ_NAME } from '../brand';
-import { useEffect, useState } from 'react';
-import api from '../api';
+import useNotifications from '../hooks/useNotifications';
 
 const nav = [
   { to: '/agency', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -24,11 +23,7 @@ const nav = [
 export default function AgencyLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
-
-  useEffect(() => {
-    api.get('/notifications').then(r => setNotifications(r.data)).catch(() => {});
-  }, []);
+  const { notifications, unread, markAllSeen } = useNotifications(30000);
 
   return (
     <div className="min-h-screen flex bg-slate-50">
@@ -97,17 +92,27 @@ export default function AgencyLayout() {
             <Input placeholder="Search campaigns, vehicles, drivers..." className="pl-9 bg-slate-50 border-slate-200" />
           </div>
           <div className="flex items-center gap-2">
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(o) => o && markAllSeen()}>
               <DropdownMenuTrigger asChild>
                 <Button size="icon" variant="ghost" className="relative">
                   <Bell className="h-5 w-5" />
-                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" />
+                  {unread > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>Notifications</span>
+                  <span className="text-xs font-normal text-slate-500">{notifications.length} total</span>
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {notifications.map(n => (
+                {notifications.length === 0 && (
+                  <div className="p-4 text-sm text-slate-500 text-center">No notifications yet</div>
+                )}
+                {notifications.slice(0, 8).map(n => (
                   <DropdownMenuItem key={n.id} className="flex-col items-start gap-0.5">
                     <div className="flex items-center gap-2 w-full">
                       <span className={`h-2 w-2 rounded-full ${n.type === 'alert' ? 'bg-red-500' : n.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`} />

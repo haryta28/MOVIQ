@@ -1,0 +1,128 @@
+================================================================================
+MOVIQ BACKEND API TEST SUITE
+Testing: https://video-replica-ai.preview.emergentagent.com/api
+================================================================================
+
+--- AUTH TESTS ---
+✅ PASS: Auth: Admin login valid
+✅ PASS: Auth: Agency login valid
+✅ PASS: Auth: Invalid password returns 401
+✅ PASS: Auth: /me with valid token
+✅ PASS: Auth: /me without token returns 401
+
+--- AGENCIES TESTS ---
+❌ FAIL: Agencies: GET list returns 6 agencies - Expected 6 agencies, got 9
+✅ PASS: Agencies: POST as admin creates agency
+✅ PASS: Agencies: POST as agency returns 403
+✅ PASS: Agencies: GET by id returns correct agency
+
+--- CAMPAIGNS TESTS ---
+✅ PASS: Campaigns: GET as admin returns all campaigns
+❌ FAIL: Campaigns: GET as agency returns only a1 campaigns - Expected 2 a1 campaigns, got 4, all_a1=True
+✅ PASS: Campaigns: GET with agency_id filter works
+✅ PASS: Campaigns: POST as agency creates campaign
+✅ PASS: Campaigns: POST as admin returns 403
+
+--- TASKS TESTS ---
+✅ PASS: Tasks: GET as admin returns 40 tasks
+✅ PASS: Tasks: GET as agency returns only a1 tasks
+✅ PASS: Tasks: Filter by status works
+✅ PASS: Tasks: Filter by city works
+
+--- TASK UPDATE (PATCH) TESTS ---
+✅ PASS: Tasks: PATCH approve as agency
+✅ PASS: Tasks: PATCH flag with reason as agency
+✅ PASS: Tasks: PATCH empty body returns 400
+✅ PASS: Tasks: PATCH nonexistent id returns 404
+✅ PASS: Tasks: PATCH other agency task returns 403
+✅ PASS: Tasks: PATCH as admin
+✅ PASS: Tasks: PATCH without token returns 401
+✅ PASS: Tasks: PATCH persistence check
+
+--- USERS TESTS ---
+✅ PASS: Users: GET role=field returns 6 users
+✅ PASS: Users: GET role=supervisor returns 3 users
+✅ PASS: Users: GET role=admin returns 3 users
+✅ PASS: Users: GET role=agency returns agency users
+
+--- FRAUD ALERTS TESTS ---
+❌ FAIL: Fraud Alerts: GET returns alerts - Expected >=5, got 3
+❌ FAIL: Fraud Alerts: Resolve removes alert - Status: 404, Body: {"detail":"Alert not found"}
+✅ PASS: Fraud Alerts: Resolve nonexistent returns 404
+
+--- MEDIA TYPES TESTS ---
+✅ PASS: Media Types: GET returns types
+✅ PASS: Media Types: POST as admin creates type
+✅ PASS: Media Types: POST as agency returns 403
+✅ PASS: Media Types: POST duplicate returns 409
+✅ PASS: Media Types: DELETE as admin works
+✅ PASS: Media Types: DELETE as agency returns 403
+✅ PASS: Media Types: DELETE nonexistent returns 404
+
+--- VEHICLE SUBMISSIONS TESTS ---
+✅ PASS: Vehicle Submissions: POST without auth works
+✅ PASS: Vehicle Submissions: GET without auth returns 401
+✅ PASS: Vehicle Submissions: GET with auth returns list
+
+--- ANALYTICS TESTS ---
+✅ PASS: Analytics: Overview as admin has correct structure
+✅ PASS: Analytics: Overview as agency has correct structure
+
+--- NOTIFICATIONS & BRANDS TESTS ---
+❌ FAIL: Notifications: GET returns 4 items - Expected 4, got 7
+✅ PASS: Brands: GET returns 6 items
+
+--- NEW FEATURE: CAMPAIGN DETAIL ---
+✅ PASS: Campaign Detail: GET /campaigns/c1 as admin
+✅ PASS: Campaign Detail: GET /campaigns/c1 as agency (own campaign)
+✅ PASS: Campaign Detail: GET /campaigns/c3 as agency (other's campaign) returns 403
+✅ PASS: Campaign Detail: GET /campaigns/nonexistent returns 404
+✅ PASS: Campaign Detail: GET /campaigns/c1 without token returns 401
+
+--- NEW FEATURE: PDF REPORT ---
+✅ PASS: PDF Report: GET /campaigns/c1/report/pdf as admin
+✅ PASS: PDF Report: GET /campaigns/c1/report/pdf as agency (own campaign)
+✅ PASS: PDF Report: GET /campaigns/c3/report/pdf as agency (other's campaign) returns 403
+✅ PASS: PDF Report: GET /campaigns/nonexistent/report/pdf returns 404
+✅ PASS: PDF Report: GET /campaigns/c1/report/pdf without token returns 401
+
+--- NEW FEATURE: EXCEL REPORT ---
+✅ PASS: Excel Report: GET /campaigns/c1/report/excel as admin
+✅ PASS: Excel Report: GET /campaigns/c3/report/excel as agency (other's campaign) returns 403
+✅ PASS: Excel Report: GET /campaigns/nonexistent/report/excel returns 404
+
+--- NEW FEATURE: NOTIFICATIONS WITH TRIGGERS ---
+✅ PASS: Notifications: Trigger on agency create
+✅ PASS: Notifications: Trigger on campaign create
+✅ PASS: Notifications: Trigger on fraud resolve
+✅ PASS: Notifications: Trigger on vehicle submission
+❌ FAIL: Notifications: Sorted by createdAt (newest first) - Missing createdAt or time field in notification n1
+
+--- REGRESSION TESTS ---
+✅ PASS: Regression: POST /auth/login (admin)
+✅ PASS: Regression: GET /campaigns
+✅ PASS: Regression: PATCH /tasks/{id}
+
+================================================================================
+TEST SUMMARY
+================================================================================
+Total tests: 68
+Passed: 62
+Failed: 6
+
+FAILED TESTS:
+  ❌ Agencies: GET list returns 6 agencies
+     Expected 6 agencies, got 9
+  ❌ Campaigns: GET as agency returns only a1 campaigns
+     Expected 2 a1 campaigns, got 4, all_a1=True
+  ❌ Fraud Alerts: GET returns alerts
+     Expected >=5, got 3
+  ❌ Fraud Alerts: Resolve removes alert
+     Status: 404, Body: {"detail":"Alert not found"}
+  ❌ Notifications: GET returns 4 items
+     Expected 4, got 7
+  ❌ Notifications: Sorted by createdAt (newest first)
+     Missing createdAt or time field in notification n1
+
+Success rate: 91.2%
+================================================================================

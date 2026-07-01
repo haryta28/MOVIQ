@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, ProgressBar } from '../../components/Shared';
-import { Download, Share2, FileBarChart, TrendingUp } from 'lucide-react';
+import { Download, Share2, FileBarChart, TrendingUp, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
-import api from '../../api';
+import api, { API_BASE } from '../../api';
 
 export default function AgencyReports() {
   const [campaigns, setCampaigns] = useState([]);
   const [cityStats, setCityStats] = useState([]);
+  const [downloading, setDownloading] = useState(null); // "{id}-pdf" or "{id}-excel"
 
   useEffect(() => {
     (async () => {
@@ -20,7 +21,31 @@ export default function AgencyReports() {
     })();
   }, []);
 
-  const download = (name) => toast({ title: 'Report ready', description: `${name} PDF has been generated.` });
+  const download = async (cid, kind, title) => {
+    const key = `${cid}-${kind}`;
+    setDownloading(key);
+    try {
+      const token = localStorage.getItem('moviq_token');
+      const res = await fetch(`${API_BASE}/campaigns/${cid}/report/${kind}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `moviq-${(title||cid).replace(/\s+/g,'-').toLowerCase()}.${kind === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: 'Downloaded', description: `${kind.toUpperCase()} report saved.` });
+    } catch (e) {
+      toast({ title: 'Download failed', description: 'Please try again.' });
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -49,8 +74,12 @@ export default function AgencyReports() {
             </div>
             <ProgressBar value={c.completed || 0} max={c.totalTasks || 1} color="bg-red-600" />
             <div className="flex gap-2 mt-4">
-              <Button size="sm" variant="outline" className="flex-1" onClick={() => download(c.title)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
-              <Button size="sm" variant="outline" className="flex-1" onClick={() => download(c.title + ' Excel')}><Download className="h-3.5 w-3.5 mr-1" /> Excel</Button>
+              <Button size="sm" variant="outline" className="flex-1" disabled={downloading === `${c.id}-pdf`} onClick={() => download(c.id, 'pdf', c.title)}>
+                {downloading === `${c.id}-pdf` ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />} PDF
+              </Button>
+              <Button size="sm" variant="outline" className="flex-1" disabled={downloading === `${c.id}-excel`} onClick={() => download(c.id, 'excel', c.title)}>
+                {downloading === `${c.id}-excel` ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 mr-1" />} Excel
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => toast({ title: 'Link copied', description: 'Client dashboard link copied to clipboard.' })}><Share2 className="h-3.5 w-3.5" /></Button>
             </div>
           </Card>
@@ -87,7 +116,12 @@ export default function AgencyReports() {
             </div>
           </div>
           <div className="flex gap-2 mt-6">
-            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={() => download('Campaign Summary')}><Download className="h-4 w-4 mr-1" /> Download PDF</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" disabled={downloading === `${campaigns[0].id}-pdf`} onClick={() => download(campaigns[0].id, 'pdf', campaigns[0].title)}>
+              {downloading === `${campaigns[0].id}-pdf` ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />} Download PDF
+            </Button>
+            <Button variant="outline" onClick={() => download(campaigns[0].id, 'excel', campaigns[0].title)}>
+              <FileSpreadsheet className="h-4 w-4 mr-1" /> Download Excel
+            </Button>
             <Button variant="outline"><Share2 className="h-4 w-4 mr-1" /> Share Link</Button>
           </div>
         </Card>

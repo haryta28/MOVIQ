@@ -14,6 +14,7 @@ import AdminAnalytics from './pages/admin/AdminAnalytics';
 import AdminMediaTypes from './pages/admin/AdminMediaTypes';
 import AgencyOverview from './pages/agency/AgencyOverview';
 import AgencyCampaigns from './pages/agency/AgencyCampaigns';
+import AgencyCampaignDetail from './pages/agency/AgencyCampaignDetail';
 import AgencyTasks from './pages/agency/AgencyTasks';
 import AgencyTeam from './pages/agency/AgencyTeam';
 import AgencyProofs from './pages/agency/AgencyProofs';
@@ -53,6 +54,7 @@ function App() {
             <Route path="/agency" element={<RequireRole role="agency"><AgencyLayout /></RequireRole>}>
               <Route index element={<AgencyOverview />} />
               <Route path="campaigns" element={<AgencyCampaigns />} />
+              <Route path="campaigns/:id" element={<AgencyCampaignDetail />} />
               <Route path="tasks" element={<AgencyTasks />} />
               <Route path="team" element={<AgencyTeam />} />
               <Route path="proofs" element={<AgencyProofs />} />

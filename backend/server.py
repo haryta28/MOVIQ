@@ -1,9 +1,11 @@
 from fastapi import FastAPI, APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import io
 import logging
 from pathlib import Path
 from pydantic import BaseModel, EmailStr
@@ -12,6 +14,14 @@ import uuid
 from datetime import datetime, timedelta, timezone
 import jwt
 from passlib.context import CryptContext
+
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 from seed_data import (
     AGENCIES, BRANDS, MEDIA_TYPES, CAMPAIGNS, TASKS, FRAUD_ALERTS,
@@ -131,6 +141,38 @@ async def require_admin(user: Dict = Depends(get_current_user)) -> Dict[str, Any
     return user
 
 
+async def create_notification(title: str, description: str, ntype: str = "info"):
+    """Create a notification record. type: alert | success | info"""
+    doc = {
+        "id": f"n_{uuid.uuid4().hex[:10]}",
+        "title": title,
+        "description": description,
+        "type": ntype,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "time": "just now",
+    }
+    await db.notifications.insert_one({**doc})
+    return doc
+
+
+def _relative_time(iso_str: Optional[str]) -> str:
+    if not iso_str:
+        return "just now"
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    except Exception:
+        return iso_str
+    delta = datetime.now(timezone.utc) - dt
+    secs = int(delta.total_seconds())
+    if secs < 60:
+        return "just now"
+    if secs < 3600:
+        return f"{secs // 60}m ago"
+    if secs < 86400:
+        return f"{secs // 3600}h ago"
+    return f"{secs // 86400}d ago"
+
+
 # ---------- Seeding ----------
 async def _seed_if_empty(coll_name: str, docs: List[Dict[str, Any]]):
     coll = db[coll_name]
@@ -211,6 +253,11 @@ async def create_agency(body: AgencyCreate, _: Dict = Depends(require_admin)):
         "joinedAt": datetime.now(timezone.utc).date().isoformat(),
     }
     await db.agencies.insert_one(new)
+    await create_notification(
+        "Agency onboarded",
+        f"{new['name']} joined on the {new.get('plan','Growth')} plan",
+        "info",
+    )
     return _clean(new)
 
 
@@ -239,6 +286,53 @@ async def list_campaigns(agency_id: Optional[str] = None, user: Dict = Depends(g
     return _clean_many(await db.campaigns.find(q).to_list(1000))
 
 
+@api.get("/campaigns/{cid}")
+async def get_campaign(cid: str, user: Dict = Depends(get_current_user)):
+    doc = await db.campaigns.find_one({"id": cid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    if user["role"] == "agency" and doc.get("agencyId") != user.get("agencyId"):
+        raise HTTPException(status_code=403, detail="Not your campaign")
+
+    tasks = await db.tasks.find({"campaignId": cid}).to_list(2000)
+    field = await db.field_executives.find({"agencyId": doc.get("agencyId")}).to_list(200)
+    fraud = await db.fraud_alerts.find({"taskCode": {"$in": [t.get("taskCode") for t in tasks]}}).to_list(200)
+
+    # Simple derived activity feed
+    activity = []
+    for t in tasks[:12]:
+        if t.get("submittedAt"):
+            activity.append({
+                "id": t["id"],
+                "kind": "submission",
+                "text": f"{t.get('assignedTo','')} submitted proof for {t.get('unitCode','')}",
+                "time": t.get("submittedAt"),
+                "status": t.get("status"),
+            })
+    for f in fraud:
+        activity.append({
+            "id": f["id"],
+            "kind": "fraud",
+            "text": f"Fraud alert: {f.get('type','')} on {f.get('taskCode','')}",
+            "time": f.get("detectedAt"),
+            "status": "flagged",
+        })
+
+    return {
+        "campaign": _clean(doc),
+        "tasks": _clean_many(tasks),
+        "team": _clean_many(field),
+        "activity": activity,
+        "stats": {
+            "byStatus": {
+                s: sum(1 for t in tasks if t.get("status") == s)
+                for s in ["pending", "in_progress", "submitted", "approved", "flagged"]
+            },
+            "byCity": {},
+        },
+    }
+
+
 @api.post("/campaigns")
 async def create_campaign(body: CampaignCreate, user: Dict = Depends(get_current_user)):
     if user["role"] != "agency":
@@ -251,6 +345,11 @@ async def create_campaign(body: CampaignCreate, user: Dict = Depends(get_current
         "completed": 0, "flagged": 0, "status": "ongoing", "spent": 0,
     }
     await db.campaigns.insert_one(new)
+    await create_notification(
+        "Campaign launched",
+        f"{new['title']} for {new.get('brand','')} is now live in {new.get('city','')}",
+        "success",
+    )
     return _clean(new)
 
 
@@ -317,9 +416,15 @@ async def list_fraud(_: Dict = Depends(get_current_user)):
 
 @api.post("/fraud-alerts/{fid}/resolve")
 async def resolve_fraud(fid: str, _: Dict = Depends(get_current_user)):
-    res = await db.fraud_alerts.delete_one({"id": fid})
-    if res.deleted_count == 0:
+    alert = await db.fraud_alerts.find_one({"id": fid})
+    if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
+    await db.fraud_alerts.delete_one({"id": fid})
+    await create_notification(
+        "Fraud alert resolved",
+        f"{alert.get('type','')} on {alert.get('taskCode','')} marked as reviewed",
+        "success",
+    )
     return {"ok": True}
 
 
@@ -363,6 +468,11 @@ async def create_vehicle_submission(body: VehicleSubmissionCreate):
         "fraudCheck": "passed",
     }
     await db.vehicle_submissions.insert_one({**doc})
+    await create_notification(
+        "New vehicle proof",
+        f"{doc['vehicle']} registered by {doc['driverName']}",
+        "info",
+    )
     return _clean(doc)
 
 
@@ -406,7 +516,219 @@ async def analytics_overview(user: Dict = Depends(get_current_user)):
 # ---- Notifications ----
 @api.get("/notifications")
 async def list_notifications(_: Dict = Depends(get_current_user)):
-    return _clean_many(await db.notifications.find().to_list(100))
+    docs = await db.notifications.find().sort("createdAt", -1).to_list(50)
+    out = _clean_many(docs)
+    for n in out:
+        if n.get("createdAt"):
+            n["time"] = _relative_time(n.get("createdAt"))
+    return out
+
+
+# ---- Reports (PDF / Excel) ----
+def _build_pdf(campaign: Dict[str, Any], tasks: List[Dict[str, Any]]) -> bytes:
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=1.4 * cm, rightMargin=1.4 * cm,
+                            topMargin=1.4 * cm, bottomMargin=1.4 * cm)
+    styles = getSampleStyleSheet()
+    story = []
+    brand_color = colors.HexColor("#DC2626")
+
+    styles.add(ParagraphStyle(name="Brand", parent=styles["Normal"], fontSize=10, textColor=brand_color, fontName="Helvetica-Bold"))
+    story.append(Paragraph("MOVIQ &nbsp;·&nbsp; Intelligence in Motion", styles["Brand"]))
+    story.append(Spacer(1, 6))
+    story.append(Paragraph(f"<b>Campaign Report</b>", ParagraphStyle(name="H1", parent=styles["Title"], fontSize=20, textColor=colors.HexColor("#0f172a"))))
+    story.append(Paragraph(campaign.get("title", ""), ParagraphStyle(name="Sub", parent=styles["Normal"], fontSize=13, textColor=colors.HexColor("#334155"))))
+    story.append(Spacer(1, 14))
+
+    meta_data = [
+        ["Brand", campaign.get("brand", "-"), "Agency", campaign.get("agency", "-")],
+        ["Media Type", campaign.get("mediaType", "-"), "City", campaign.get("city", "-")],
+        ["Start", campaign.get("startDate", "-"), "End", campaign.get("endDate", "-")],
+        ["Budget", f"₹ {campaign.get('budget', 0):,}", "Spent", f"₹ {campaign.get('spent', 0):,}"],
+    ]
+    meta_table = Table(meta_data, colWidths=[3.2 * cm, 5.5 * cm, 3.2 * cm, 5.5 * cm])
+    meta_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f8fafc")),
+        ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#f8fafc")),
+        ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#64748b")),
+        ("TEXTCOLOR", (2, 0), (2, -1), colors.HexColor("#64748b")),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 18))
+
+    total = campaign.get("totalTasks", 0) or 0
+    completed = campaign.get("completed", 0) or 0
+    flagged = campaign.get("flagged", 0) or 0
+    completion = (completed / total * 100) if total else 0
+
+    kpis = [["Total Tasks", "Completed", "Completion %", "Flagged"],
+            [str(total), str(completed), f"{completion:.1f}%", str(flagged)]]
+    kpi_table = Table(kpis, colWidths=[4.35 * cm] * 4)
+    kpi_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), brand_color),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("FONTSIZE", (0, 1), (-1, 1), 16),
+        ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+        ("TEXTCOLOR", (0, 1), (-1, 1), colors.HexColor("#0f172a")),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+    ]))
+    story.append(kpi_table)
+    story.append(Spacer(1, 18))
+
+    story.append(Paragraph("<b>Task Details</b>", ParagraphStyle(name="H2", parent=styles["Heading2"], fontSize=13)))
+    story.append(Spacer(1, 6))
+
+    header = ["Task Code", "Unit", "City", "Executive", "Status", "Submitted"]
+    rows = [header]
+    for t in tasks[:35]:
+        rows.append([
+            t.get("taskCode", "-"),
+            t.get("unitCode", "-"),
+            t.get("city", "-"),
+            (t.get("assignedTo", "-") or "-")[:22],
+            (t.get("status", "-") or "-").replace("_", " ").title(),
+            (t.get("submittedAt") or "-")[:16],
+        ])
+    task_table = Table(rows, colWidths=[3.2 * cm, 1.8 * cm, 2.6 * cm, 4.2 * cm, 2.4 * cm, 3.2 * cm])
+    task_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1f5f9")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#334155")),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#fafafa")]),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#e2e8f0")),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(task_table)
+    story.append(Spacer(1, 14))
+
+    footer = f"Generated by Moviq &nbsp;·&nbsp; {datetime.now(timezone.utc).strftime('%d %b %Y, %H:%M UTC')}"
+    story.append(Paragraph(footer, ParagraphStyle(name="Foot", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#94a3b8"), alignment=1)))
+
+    doc.build(story)
+    buf.seek(0)
+    return buf.read()
+
+
+def _build_excel(campaign: Dict[str, Any], tasks: List[Dict[str, Any]]) -> bytes:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Summary"
+
+    brand_fill = PatternFill("solid", fgColor="DC2626")
+    header_fill = PatternFill("solid", fgColor="F1F5F9")
+    thin = Side(border_style="thin", color="E2E8F0")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    bold = Font(bold=True)
+    white_bold = Font(bold=True, color="FFFFFF")
+
+    ws["A1"] = "MOVIQ"
+    ws["A1"].font = Font(bold=True, size=14, color="DC2626")
+    ws["A2"] = "Campaign Report"
+    ws["A2"].font = Font(bold=True, size=18)
+    ws["A3"] = campaign.get("title", "")
+    ws["A3"].font = Font(size=12, color="475569")
+
+    meta = [
+        ("Brand", campaign.get("brand", "-")),
+        ("Agency", campaign.get("agency", "-")),
+        ("Media Type", campaign.get("mediaType", "-")),
+        ("City", campaign.get("city", "-")),
+        ("Start Date", campaign.get("startDate", "-")),
+        ("End Date", campaign.get("endDate", "-")),
+        ("Budget (₹)", campaign.get("budget", 0)),
+        ("Spent (₹)", campaign.get("spent", 0)),
+        ("Total Tasks", campaign.get("totalTasks", 0)),
+        ("Completed", campaign.get("completed", 0)),
+        ("Flagged", campaign.get("flagged", 0)),
+    ]
+    row = 5
+    for label, val in meta:
+        ws.cell(row=row, column=1, value=label).font = bold
+        ws.cell(row=row, column=1).fill = header_fill
+        ws.cell(row=row, column=1).border = border
+        ws.cell(row=row, column=2, value=val).border = border
+        row += 1
+
+    ws.column_dimensions["A"].width = 22
+    ws.column_dimensions["B"].width = 42
+
+    # Tasks sheet
+    ts = wb.create_sheet("Tasks")
+    headers = ["Task Code", "Unit", "City", "Media Type", "Executive", "Status", "Submitted", "GPS Lat", "GPS Lng", "Photos", "Flag Reason"]
+    for i, h in enumerate(headers, 1):
+        cell = ts.cell(row=1, column=i, value=h)
+        cell.font = white_bold
+        cell.fill = brand_fill
+        cell.alignment = Alignment(horizontal="center")
+        cell.border = border
+    widths = [16, 10, 14, 18, 20, 14, 20, 12, 12, 8, 30]
+    for i, w in enumerate(widths, 1):
+        ts.column_dimensions[chr(64 + i)].width = w
+
+    for r, t in enumerate(tasks, start=2):
+        vals = [
+            t.get("taskCode", ""), t.get("unitCode", ""), t.get("city", ""),
+            t.get("mediaType", ""), t.get("assignedTo", ""), t.get("status", ""),
+            t.get("submittedAt", ""), t.get("lat", ""), t.get("lng", ""),
+            t.get("photos", 0), t.get("flagReason", "") or "",
+        ]
+        for i, v in enumerate(vals, 1):
+            cell = ts.cell(row=r, column=i, value=v)
+            cell.border = border
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+async def _campaign_with_tasks(cid: str, user: Dict[str, Any]):
+    doc = await db.campaigns.find_one({"id": cid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    if user["role"] == "agency" and doc.get("agencyId") != user.get("agencyId"):
+        raise HTTPException(status_code=403, detail="Not your campaign")
+    tasks = await db.tasks.find({"campaignId": cid}).to_list(2000)
+    return _clean(doc), _clean_many(tasks)
+
+
+@api.get("/campaigns/{cid}/report/pdf")
+async def campaign_report_pdf(cid: str, user: Dict = Depends(get_current_user)):
+    campaign, tasks = await _campaign_with_tasks(cid, user)
+    pdf_bytes = _build_pdf(campaign, tasks)
+    filename = f"moviq-report-{cid}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@api.get("/campaigns/{cid}/report/excel")
+async def campaign_report_excel(cid: str, user: Dict = Depends(get_current_user)):
+    campaign, tasks = await _campaign_with_tasks(cid, user)
+    xlsx_bytes = _build_excel(campaign, tasks)
+    filename = f"moviq-report-{cid}.xlsx"
+    return StreamingResponse(
+        io.BytesIO(xlsx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ---------- Include & CORS ----------

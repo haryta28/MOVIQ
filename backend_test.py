@@ -6,6 +6,7 @@ Tests all endpoints at REACT_APP_BACKEND_URL/api
 
 import requests
 import json
+import uuid
 from typing import Dict, Optional, Any
 
 # Backend URL from frontend/.env
@@ -924,6 +925,518 @@ def test_brands_get():
 
 
 # ============================================================================
+# NEW FEATURES TESTS (Campaign Detail, PDF/Excel Reports, Notifications with triggers)
+# ============================================================================
+
+def test_campaign_detail_as_admin():
+    """Test GET /campaigns/{cid} as admin returns full campaign detail"""
+    resp = make_request("GET", "/campaigns/c1", token=admin_token)
+    
+    if resp.status_code == 200:
+        data = resp.json()
+        required_keys = ["campaign", "tasks", "team", "activity", "stats"]
+        if all(k in data for k in required_keys):
+            campaign = data["campaign"]
+            tasks = data["tasks"]
+            if campaign.get("id") == "c1" and isinstance(tasks, list):
+                # Verify all tasks belong to campaign c1
+                all_c1 = all(t.get("campaignId") == "c1" for t in tasks)
+                if all_c1:
+                    log_test("Campaign Detail: GET /campaigns/c1 as admin", True)
+                    return
+                log_test("Campaign Detail: GET /campaigns/c1 as admin", False, "Not all tasks belong to c1")
+                return
+        log_test("Campaign Detail: GET /campaigns/c1 as admin", False, f"Missing keys or wrong structure")
+    else:
+        log_test("Campaign Detail: GET /campaigns/c1 as admin", False, f"Status: {resp.status_code}, Body: {resp.text[:200]}")
+
+
+def test_campaign_detail_as_agency_own():
+    """Test GET /campaigns/{cid} as agency for own campaign returns 200"""
+    resp = make_request("GET", "/campaigns/c1", token=agency_token)
+    
+    if resp.status_code == 200:
+        data = resp.json()
+        required_keys = ["campaign", "tasks", "team", "activity", "stats"]
+        if all(k in data for k in required_keys):
+            log_test("Campaign Detail: GET /campaigns/c1 as agency (own campaign)", True)
+            return
+        log_test("Campaign Detail: GET /campaigns/c1 as agency (own campaign)", False, "Missing required keys")
+    else:
+        log_test("Campaign Detail: GET /campaigns/c1 as agency (own campaign)", False, f"Status: {resp.status_code}")
+
+
+def test_campaign_detail_as_agency_other():
+    """Test GET /campaigns/{cid} as agency for other agency's campaign returns 403"""
+    # c3 belongs to a2 (Metro Outdoor), agency_token is for a1 (BrightAds)
+    resp = make_request("GET", "/campaigns/c3", token=agency_token)
+    
+    if resp.status_code == 403:
+        data = resp.json()
+        if "Not your campaign" in data.get("detail", ""):
+            log_test("Campaign Detail: GET /campaigns/c3 as agency (other's campaign) returns 403", True)
+            return
+        log_test("Campaign Detail: GET /campaigns/c3 as agency (other's campaign) returns 403", False, f"Wrong error message: {data.get('detail')}")
+    else:
+        log_test("Campaign Detail: GET /campaigns/c3 as agency (other's campaign) returns 403", False, f"Expected 403, got {resp.status_code}")
+
+
+def test_campaign_detail_not_found():
+    """Test GET /campaigns/nonexistent returns 404"""
+    resp = make_request("GET", "/campaigns/does-not-exist", token=admin_token)
+    
+    if resp.status_code == 404:
+        log_test("Campaign Detail: GET /campaigns/nonexistent returns 404", True)
+    else:
+        log_test("Campaign Detail: GET /campaigns/nonexistent returns 404", False, f"Expected 404, got {resp.status_code}")
+
+
+def test_campaign_detail_without_token():
+    """Test GET /campaigns/{cid} without token returns 401"""
+    resp = make_request("GET", "/campaigns/c1", token=None)
+    
+    if resp.status_code == 401:
+        log_test("Campaign Detail: GET /campaigns/c1 without token returns 401", True)
+    else:
+        log_test("Campaign Detail: GET /campaigns/c1 without token returns 401", False, f"Expected 401, got {resp.status_code}")
+
+
+def test_pdf_report_as_admin():
+    """Test GET /campaigns/{cid}/report/pdf as admin returns valid PDF"""
+    resp = make_request("GET", "/campaigns/c1/report/pdf", token=admin_token)
+    
+    if resp.status_code == 200:
+        content_type = resp.headers.get("Content-Type", "")
+        content_disp = resp.headers.get("Content-Disposition", "")
+        body = resp.content
+        
+        # Check Content-Type starts with application/pdf
+        if not content_type.startswith("application/pdf"):
+            log_test("PDF Report: GET /campaigns/c1/report/pdf as admin", False, f"Wrong Content-Type: {content_type}")
+            return
+        
+        # Check Content-Disposition contains attachment and .pdf
+        if "attachment" not in content_disp or ".pdf" not in content_disp:
+            log_test("PDF Report: GET /campaigns/c1/report/pdf as admin", False, f"Wrong Content-Disposition: {content_disp}")
+            return
+        
+        # Check body starts with %PDF- (PDF magic bytes)
+        if not body.startswith(b"%PDF"):
+            log_test("PDF Report: GET /campaigns/c1/report/pdf as admin", False, f"Body doesn't start with %PDF, starts with: {body[:10]}")
+            return
+        
+        # Check body is non-empty
+        if len(body) == 0:
+            log_test("PDF Report: GET /campaigns/c1/report/pdf as admin", False, "Empty PDF body")
+            return
+        
+        log_test("PDF Report: GET /campaigns/c1/report/pdf as admin", True)
+    else:
+        log_test("PDF Report: GET /campaigns/c1/report/pdf as admin", False, f"Status: {resp.status_code}, Body: {resp.text[:200]}")
+
+
+def test_pdf_report_as_agency_own():
+    """Test GET /campaigns/{cid}/report/pdf as agency for own campaign returns 200"""
+    resp = make_request("GET", "/campaigns/c1/report/pdf", token=agency_token)
+    
+    if resp.status_code == 200:
+        body = resp.content
+        if body.startswith(b"%PDF") and len(body) > 0:
+            log_test("PDF Report: GET /campaigns/c1/report/pdf as agency (own campaign)", True)
+            return
+        log_test("PDF Report: GET /campaigns/c1/report/pdf as agency (own campaign)", False, "Invalid PDF")
+    else:
+        log_test("PDF Report: GET /campaigns/c1/report/pdf as agency (own campaign)", False, f"Status: {resp.status_code}")
+
+
+def test_pdf_report_as_agency_other():
+    """Test GET /campaigns/{cid}/report/pdf as agency for other's campaign returns 403"""
+    resp = make_request("GET", "/campaigns/c3/report/pdf", token=agency_token)
+    
+    if resp.status_code == 403:
+        log_test("PDF Report: GET /campaigns/c3/report/pdf as agency (other's campaign) returns 403", True)
+    else:
+        log_test("PDF Report: GET /campaigns/c3/report/pdf as agency (other's campaign) returns 403", False, f"Expected 403, got {resp.status_code}")
+
+
+def test_pdf_report_not_found():
+    """Test GET /campaigns/nonexistent/report/pdf returns 404"""
+    resp = make_request("GET", "/campaigns/does-not-exist/report/pdf", token=admin_token)
+    
+    if resp.status_code == 404:
+        log_test("PDF Report: GET /campaigns/nonexistent/report/pdf returns 404", True)
+    else:
+        log_test("PDF Report: GET /campaigns/nonexistent/report/pdf returns 404", False, f"Expected 404, got {resp.status_code}")
+
+
+def test_pdf_report_without_token():
+    """Test GET /campaigns/{cid}/report/pdf without token returns 401"""
+    resp = make_request("GET", "/campaigns/c1/report/pdf", token=None)
+    
+    if resp.status_code == 401:
+        log_test("PDF Report: GET /campaigns/c1/report/pdf without token returns 401", True)
+    else:
+        log_test("PDF Report: GET /campaigns/c1/report/pdf without token returns 401", False, f"Expected 401, got {resp.status_code}")
+
+
+def test_excel_report_as_admin():
+    """Test GET /campaigns/{cid}/report/excel as admin returns valid Excel"""
+    resp = make_request("GET", "/campaigns/c1/report/excel", token=admin_token)
+    
+    if resp.status_code == 200:
+        content_type = resp.headers.get("Content-Type", "")
+        content_disp = resp.headers.get("Content-Disposition", "")
+        body = resp.content
+        
+        # Check Content-Type includes spreadsheetml.sheet
+        if "spreadsheetml.sheet" not in content_type:
+            log_test("Excel Report: GET /campaigns/c1/report/excel as admin", False, f"Wrong Content-Type: {content_type}")
+            return
+        
+        # Check Content-Disposition contains attachment
+        if "attachment" not in content_disp:
+            log_test("Excel Report: GET /campaigns/c1/report/excel as admin", False, f"Wrong Content-Disposition: {content_disp}")
+            return
+        
+        # Check body starts with PK (XLSX is a zip, magic bytes 50 4B 03 04)
+        if not body.startswith(b"PK"):
+            log_test("Excel Report: GET /campaigns/c1/report/excel as admin", False, f"Body doesn't start with PK, starts with: {body[:10]}")
+            return
+        
+        # Check body is non-empty
+        if len(body) == 0:
+            log_test("Excel Report: GET /campaigns/c1/report/excel as admin", False, "Empty Excel body")
+            return
+        
+        # Optionally verify workbook structure with openpyxl
+        try:
+            from openpyxl import load_workbook
+            from io import BytesIO
+            wb = load_workbook(BytesIO(body))
+            sheet_names = wb.sheetnames
+            if "Summary" not in sheet_names or "Tasks" not in sheet_names:
+                log_test("Excel Report: GET /campaigns/c1/report/excel as admin", False, f"Missing sheets. Found: {sheet_names}")
+                return
+        except Exception as e:
+            log_test("Excel Report: GET /campaigns/c1/report/excel as admin", False, f"Failed to load workbook: {e}")
+            return
+        
+        log_test("Excel Report: GET /campaigns/c1/report/excel as admin", True)
+    else:
+        log_test("Excel Report: GET /campaigns/c1/report/excel as admin", False, f"Status: {resp.status_code}, Body: {resp.text[:200]}")
+
+
+def test_excel_report_as_agency_other():
+    """Test GET /campaigns/{cid}/report/excel as agency for other's campaign returns 403"""
+    resp = make_request("GET", "/campaigns/c3/report/excel", token=agency_token)
+    
+    if resp.status_code == 403:
+        log_test("Excel Report: GET /campaigns/c3/report/excel as agency (other's campaign) returns 403", True)
+    else:
+        log_test("Excel Report: GET /campaigns/c3/report/excel as agency (other's campaign) returns 403", False, f"Expected 403, got {resp.status_code}")
+
+
+def test_excel_report_not_found():
+    """Test GET /campaigns/nonexistent/report/excel returns 404"""
+    resp = make_request("GET", "/campaigns/does-not-exist/report/excel", token=admin_token)
+    
+    if resp.status_code == 404:
+        log_test("Excel Report: GET /campaigns/nonexistent/report/excel returns 404", True)
+    else:
+        log_test("Excel Report: GET /campaigns/nonexistent/report/excel returns 404", False, f"Expected 404, got {resp.status_code}")
+
+
+def test_notifications_with_triggers_agency_create():
+    """Test notification trigger: Agency create"""
+    # Get current notification count
+    resp = make_request("GET", "/notifications", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on agency create", False, "Failed to get initial notifications")
+        return
+    
+    initial_notifications = resp.json()
+    initial_count = len(initial_notifications)
+    
+    # Create a new agency
+    resp = make_request("POST", "/agencies", token=admin_token, json_data={
+        "name": f"Test Agency {uuid.uuid4().hex[:6]}",
+        "head": "Test Head",
+        "email": f"test{uuid.uuid4().hex[:6]}@testagency.com",
+        "phone": "9876543210",
+        "city": "Mumbai",
+        "plan": "Enterprise"
+    })
+    
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on agency create", False, f"Failed to create agency: {resp.status_code}")
+        return
+    
+    # Get notifications again
+    resp = make_request("GET", "/notifications", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on agency create", False, "Failed to get notifications after agency create")
+        return
+    
+    new_notifications = resp.json()
+    
+    # Check if new notification was created
+    if len(new_notifications) <= initial_count:
+        log_test("Notifications: Trigger on agency create", False, f"No new notification. Before: {initial_count}, After: {len(new_notifications)}")
+        return
+    
+    # Check if the first (newest) notification is about agency onboarding
+    newest = new_notifications[0]
+    if newest.get("title") == "Agency onboarded" and newest.get("type") == "info":
+        # Verify it has createdAt and time fields
+        if "createdAt" in newest and "time" in newest:
+            log_test("Notifications: Trigger on agency create", True)
+            return
+        log_test("Notifications: Trigger on agency create", False, "Missing createdAt or time field")
+        return
+    
+    log_test("Notifications: Trigger on agency create", False, f"Wrong notification. Title: {newest.get('title')}, Type: {newest.get('type')}")
+
+
+def test_notifications_with_triggers_campaign_create():
+    """Test notification trigger: Campaign create"""
+    # Get current notification count
+    resp = make_request("GET", "/notifications", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on campaign create", False, "Failed to get initial notifications")
+        return
+    
+    initial_count = len(resp.json())
+    
+    # Create a new campaign as agency
+    resp = make_request("POST", "/campaigns", token=agency_token, json_data={
+        "title": f"Test Campaign {uuid.uuid4().hex[:6]}",
+        "brand": "Test Brand",
+        "mediaType": "Bus Branding",
+        "city": "Delhi",
+        "totalTasks": 10,
+        "budget": 50000,
+        "startDate": "2024-01-01",
+        "endDate": "2024-03-31"
+    })
+    
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on campaign create", False, f"Failed to create campaign: {resp.status_code}")
+        return
+    
+    # Get notifications again
+    resp = make_request("GET", "/notifications", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on campaign create", False, "Failed to get notifications after campaign create")
+        return
+    
+    new_notifications = resp.json()
+    
+    # Check if new notification was created
+    if len(new_notifications) <= initial_count:
+        log_test("Notifications: Trigger on campaign create", False, f"No new notification. Before: {initial_count}, After: {len(new_notifications)}")
+        return
+    
+    # Check if the first (newest) notification is about campaign launch
+    newest = new_notifications[0]
+    if newest.get("title") == "Campaign launched" and newest.get("type") == "success":
+        if "createdAt" in newest and "time" in newest:
+            log_test("Notifications: Trigger on campaign create", True)
+            return
+        log_test("Notifications: Trigger on campaign create", False, "Missing createdAt or time field")
+        return
+    
+    log_test("Notifications: Trigger on campaign create", False, f"Wrong notification. Title: {newest.get('title')}, Type: {newest.get('type')}")
+
+
+def test_notifications_with_triggers_fraud_resolve():
+    """Test notification trigger: Fraud alert resolve"""
+    # Get a fraud alert to resolve
+    resp = make_request("GET", "/fraud-alerts", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on fraud resolve", False, "Failed to get fraud alerts")
+        return
+    
+    alerts = resp.json()
+    if not alerts:
+        log_test("Notifications: Trigger on fraud resolve", False, "No fraud alerts available to resolve")
+        return
+    
+    alert_id = alerts[0]["id"]
+    
+    # Get current notification count
+    resp = make_request("GET", "/notifications", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on fraud resolve", False, "Failed to get initial notifications")
+        return
+    
+    initial_count = len(resp.json())
+    
+    # Resolve the fraud alert
+    resp = make_request("POST", f"/fraud-alerts/{alert_id}/resolve", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on fraud resolve", False, f"Failed to resolve fraud alert: {resp.status_code}")
+        return
+    
+    # Get notifications again
+    resp = make_request("GET", "/notifications", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on fraud resolve", False, "Failed to get notifications after fraud resolve")
+        return
+    
+    new_notifications = resp.json()
+    
+    # Check if new notification was created
+    if len(new_notifications) <= initial_count:
+        log_test("Notifications: Trigger on fraud resolve", False, f"No new notification. Before: {initial_count}, After: {len(new_notifications)}")
+        return
+    
+    # Check if the first (newest) notification is about fraud resolution
+    newest = new_notifications[0]
+    if newest.get("title") == "Fraud alert resolved" and newest.get("type") == "success":
+        if "createdAt" in newest and "time" in newest:
+            log_test("Notifications: Trigger on fraud resolve", True)
+            return
+        log_test("Notifications: Trigger on fraud resolve", False, "Missing createdAt or time field")
+        return
+    
+    log_test("Notifications: Trigger on fraud resolve", False, f"Wrong notification. Title: {newest.get('title')}, Type: {newest.get('type')}")
+
+
+def test_notifications_with_triggers_vehicle_submission():
+    """Test notification trigger: Vehicle submission"""
+    # Get current notification count
+    resp = make_request("GET", "/notifications", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on vehicle submission", False, "Failed to get initial notifications")
+        return
+    
+    initial_count = len(resp.json())
+    
+    # Submit a vehicle (public endpoint, no auth)
+    resp = make_request("POST", "/vehicle-submissions", json_data={
+        "vehicle": f"KA{uuid.uuid4().hex[:2].upper()}AB{uuid.uuid4().hex[:4].upper()}",
+        "driver_name": "Test Driver",
+        "driver_phone": "9876543210",
+        "photos": [{"url": "https://example.com/photo1.jpg"}],
+        "gps": {"lat": 12.9716, "lng": 77.5946}
+    })
+    
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on vehicle submission", False, f"Failed to submit vehicle: {resp.status_code}")
+        return
+    
+    # Get notifications again
+    resp = make_request("GET", "/notifications", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Notifications: Trigger on vehicle submission", False, "Failed to get notifications after vehicle submission")
+        return
+    
+    new_notifications = resp.json()
+    
+    # Check if new notification was created
+    if len(new_notifications) <= initial_count:
+        log_test("Notifications: Trigger on vehicle submission", False, f"No new notification. Before: {initial_count}, After: {len(new_notifications)}")
+        return
+    
+    # Check if the first (newest) notification is about vehicle proof
+    newest = new_notifications[0]
+    if newest.get("title") == "New vehicle proof" and newest.get("type") == "info":
+        if "createdAt" in newest and "time" in newest:
+            log_test("Notifications: Trigger on vehicle submission", True)
+            return
+        log_test("Notifications: Trigger on vehicle submission", False, "Missing createdAt or time field")
+        return
+    
+    log_test("Notifications: Trigger on vehicle submission", False, f"Wrong notification. Title: {newest.get('title')}, Type: {newest.get('type')}")
+
+
+def test_notifications_sorted_by_createdat():
+    """Test GET /notifications returns list sorted newest first"""
+    resp = make_request("GET", "/notifications", token=admin_token)
+    
+    if resp.status_code == 200:
+        notifications = resp.json()
+        if not isinstance(notifications, list) or len(notifications) == 0:
+            log_test("Notifications: Sorted by createdAt (newest first)", False, "Empty or invalid response")
+            return
+        
+        # Check all have createdAt and time fields
+        for n in notifications:
+            if "createdAt" not in n or "time" not in n:
+                log_test("Notifications: Sorted by createdAt (newest first)", False, f"Missing createdAt or time field in notification {n.get('id')}")
+                return
+        
+        # Check if sorted by createdAt descending (newest first)
+        created_ats = [n["createdAt"] for n in notifications]
+        sorted_created_ats = sorted(created_ats, reverse=True)
+        
+        if created_ats == sorted_created_ats:
+            log_test("Notifications: Sorted by createdAt (newest first)", True)
+            return
+        
+        log_test("Notifications: Sorted by createdAt (newest first)", False, "Notifications not sorted by createdAt descending")
+    else:
+        log_test("Notifications: Sorted by createdAt (newest first)", False, f"Status: {resp.status_code}")
+
+
+def test_regression_login():
+    """Regression: POST /api/auth/login still works"""
+    resp = make_request("POST", "/auth/login", json_data={
+        "email": ADMIN_EMAIL,
+        "password": ADMIN_PASSWORD
+    })
+    
+    if resp.status_code == 200:
+        data = resp.json()
+        if "token" in data and "user" in data:
+            log_test("Regression: POST /auth/login (admin)", True)
+            return
+    
+    log_test("Regression: POST /auth/login (admin)", False, f"Status: {resp.status_code}")
+
+
+def test_regression_campaigns_list():
+    """Regression: GET /api/campaigns still works"""
+    resp = make_request("GET", "/campaigns", token=admin_token)
+    
+    if resp.status_code == 200:
+        campaigns = resp.json()
+        if isinstance(campaigns, list):
+            log_test("Regression: GET /campaigns", True)
+            return
+    
+    log_test("Regression: GET /campaigns", False, f"Status: {resp.status_code}")
+
+
+def test_regression_task_patch():
+    """Regression: PATCH /api/tasks/{id} still works"""
+    # Get a task belonging to agency a1
+    resp = make_request("GET", "/tasks", token=agency_token)
+    if resp.status_code != 200:
+        log_test("Regression: PATCH /tasks/{id}", False, "Failed to get tasks")
+        return
+    
+    tasks = resp.json()
+    if not tasks:
+        log_test("Regression: PATCH /tasks/{id}", False, "No tasks found")
+        return
+    
+    task_id = tasks[0]["id"]
+    
+    # PATCH to approve
+    resp = make_request("PATCH", f"/tasks/{task_id}", token=agency_token, 
+                       json_data={"status": "approved"})
+    
+    if resp.status_code == 200:
+        task = resp.json()
+        if task.get("status") == "approved":
+            log_test("Regression: PATCH /tasks/{id}", True)
+            return
+    
+    log_test("Regression: PATCH /tasks/{id}", False, f"Status: {resp.status_code}")
+
+
+# ============================================================================
 # MAIN TEST RUNNER
 # ============================================================================
 
@@ -1024,6 +1537,43 @@ def run_all_tests():
     print("--- NOTIFICATIONS & BRANDS TESTS ---")
     test_notifications_get()
     test_brands_get()
+    print()
+    
+    # NEW FEATURES TESTS
+    print("--- NEW FEATURE: CAMPAIGN DETAIL ---")
+    test_campaign_detail_as_admin()
+    test_campaign_detail_as_agency_own()
+    test_campaign_detail_as_agency_other()
+    test_campaign_detail_not_found()
+    test_campaign_detail_without_token()
+    print()
+    
+    print("--- NEW FEATURE: PDF REPORT ---")
+    test_pdf_report_as_admin()
+    test_pdf_report_as_agency_own()
+    test_pdf_report_as_agency_other()
+    test_pdf_report_not_found()
+    test_pdf_report_without_token()
+    print()
+    
+    print("--- NEW FEATURE: EXCEL REPORT ---")
+    test_excel_report_as_admin()
+    test_excel_report_as_agency_other()
+    test_excel_report_not_found()
+    print()
+    
+    print("--- NEW FEATURE: NOTIFICATIONS WITH TRIGGERS ---")
+    test_notifications_with_triggers_agency_create()
+    test_notifications_with_triggers_campaign_create()
+    test_notifications_with_triggers_fraud_resolve()
+    test_notifications_with_triggers_vehicle_submission()
+    test_notifications_sorted_by_createdat()
+    print()
+    
+    print("--- REGRESSION TESTS ---")
+    test_regression_login()
+    test_regression_campaigns_list()
+    test_regression_task_patch()
     print()
     
     # Summary
