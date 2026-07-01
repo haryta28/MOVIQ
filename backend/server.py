@@ -194,6 +194,15 @@ async def seed_all():
     await _seed_if_empty("city_stats", CITY_STATS)
     await _seed_if_empty("notifications", NOTIFICATIONS)
 
+    # Backfill createdAt on notifications that lack it (from old seed)
+    now = datetime.now(timezone.utc)
+    async for n in db.notifications.find({"createdAt": {"$exists": False}}):
+        # Guess timestamp based on the mock 'time' string; fallback to now - index*1h
+        await db.notifications.update_one(
+            {"id": n["id"]},
+            {"$set": {"createdAt": (now - timedelta(hours=1)).isoformat()}}
+        )
+
     if await db.users.count_documents({}) == 0:
         seed_users = [
             {"id": "u1", "name": "Deepak Bansal", "email": "admin@moviq.in", "role": "admin", "avatar": "DB",
