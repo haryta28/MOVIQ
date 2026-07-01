@@ -1,0 +1,99 @@
+import React, { useState } from 'react';
+import { Card } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { PageHeader, StatusBadge, ProgressBar } from '../../components/Shared';
+import { Plus, Calendar, MapPin, IndianRupee, Megaphone } from 'lucide-react';
+import { campaigns as campaignsData, brands, mediaTypes } from '../../mock/mock';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { toast } from '../../hooks/use-toast';
+
+export default function AgencyCampaigns() {
+  const [campaigns, setCampaigns] = useState(campaignsData.filter(c => c.agencyId === 'a1'));
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ title: '', brand: '', mediaType: '', city: '', totalTasks: 100, budget: 100000, startDate: '', endDate: '' });
+
+  const create = () => {
+    if (!form.title || !form.brand) { toast({ title: 'Missing fields' }); return; }
+    const c = { id: `c${Date.now()}`, ...form, agency: 'BrightAds Media', agencyId: 'a1', brandId: 'b1', completed: 0, flagged: 0, status: 'ongoing', spent: 0 };
+    setCampaigns([c, ...campaigns]);
+    setOpen(false);
+    toast({ title: 'Campaign created', description: `${c.title} is now live.` });
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Campaigns"
+        description="Create, launch, and track every OOH campaign end-to-end."
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white"><Plus className="h-4 w-4 mr-1" /> New campaign</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>Launch a new campaign</DialogTitle></DialogHeader>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2"><Label>Campaign title</Label><Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="NoBroker Auto Blitz Q3" className="mt-1" /></div>
+                <div>
+                  <Label>Brand</Label>
+                  <Select value={form.brand} onValueChange={v => setForm({...form, brand: v})}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select brand" /></SelectTrigger>
+                    <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Media type</Label>
+                  <Select value={form.mediaType} onValueChange={v => setForm({...form, mediaType: v})}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>{mediaTypes.map(m => <SelectItem key={m.key} value={m.label}>{m.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><Label>City</Label><Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} className="mt-1" placeholder="Bengaluru" /></div>
+                <div><Label>Total tasks</Label><Input type="number" value={form.totalTasks} onChange={e => setForm({...form, totalTasks: +e.target.value})} className="mt-1" /></div>
+                <div><Label>Start date</Label><Input type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} className="mt-1" /></div>
+                <div><Label>End date</Label><Input type="date" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} className="mt-1" /></div>
+                <div className="col-span-2"><Label>Budget (₹)</Label><Input type="number" value={form.budget} onChange={e => setForm({...form, budget: +e.target.value})} className="mt-1" /></div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={create}>Launch campaign</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {campaigns.map(c => (
+          <Card key={c.id} className="p-5 hover:shadow-md transition">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold">
+                  {c.brand.slice(0,2).toUpperCase()}
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900">{c.title}</div>
+                  <div className="text-xs text-slate-500">{c.brand}</div>
+                </div>
+              </div>
+              <StatusBadge status={c.status} />
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-xs my-3">
+              <div className="flex items-center gap-1.5 text-slate-600"><MapPin className="h-3.5 w-3.5 text-slate-400" />{c.city}</div>
+              <div className="flex items-center gap-1.5 text-slate-600"><Megaphone className="h-3.5 w-3.5 text-slate-400" />{c.mediaType}</div>
+              <div className="flex items-center gap-1.5 text-slate-600"><IndianRupee className="h-3.5 w-3.5 text-slate-400" />{(c.budget/100000).toFixed(1)}L</div>
+            </div>
+            <ProgressBar value={c.completed} max={c.totalTasks} color="bg-indigo-600" />
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+              <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{c.startDate} → {c.endDate}</span>
+              <Button size="sm" variant="ghost" className="text-indigo-600">Details</Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
