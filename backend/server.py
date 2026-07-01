@@ -74,6 +74,11 @@ class MediaTypeCreate(BaseModel):
     category: str = "Custom"
 
 
+class TaskUpdate(BaseModel):
+    status: Optional[str] = None
+    flagReason: Optional[str] = None
+
+
 class VehicleSubmissionCreate(BaseModel):
     vehicle: str
     driver_name: str
@@ -263,6 +268,26 @@ async def list_tasks(agency_id: Optional[str] = None, status_: Optional[str] = N
     if city:
         q["city"] = city
     return _clean_many(await db.tasks.find(q).to_list(2000))
+
+
+@api.patch("/tasks/{tid}")
+async def update_task(tid: str, body: TaskUpdate, user: Dict = Depends(get_current_user)):
+    task = await db.tasks.find_one({"id": tid})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if user["role"] == "agency" and task.get("agencyId") != user.get("agencyId"):
+        raise HTTPException(status_code=403, detail="Not your task")
+    update: Dict[str, Any] = {}
+    if body.status is not None:
+        update["status"] = body.status
+        if body.status == "flagged" and body.flagReason:
+            update["flagReason"] = body.flagReason
+        elif body.status != "flagged":
+            update["flagReason"] = None
+    if not update:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    await db.tasks.update_one({"id": tid}, {"$set": update})
+    return _clean(await db.tasks.find_one({"id": tid}))
 
 
 # ---- Users ----

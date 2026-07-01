@@ -170,6 +170,70 @@ backend:
         agent: "testing"
         comment: "✅ All tasks tests passed: GET /tasks as admin returns all 40 tasks. GET /tasks as agency returns only agencyId=a1 tasks. GET /tasks?status_=flagged correctly filters by status. GET /tasks?city=Bengaluru correctly filters by city."
 
+  - task: "Update Task (PATCH /api/tasks/{id}) — Approve / Re-shoot"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: |
+          Bug reported by user: Approve & Request re-shoot buttons in the Agency Media Proofs
+          detail modal didn't do anything (no onClick). Fix:
+            1) Added PATCH /api/tasks/{id} endpoint accepting {status, flagReason}.
+               - Auth required. Agency users restricted to their own tasks (403 otherwise).
+               - Approve sets status='approved' and clears flagReason.
+               - Re-shoot sets status='flagged' and stores flagReason.
+               - 404 if task not found.
+            2) Wired the two buttons in AgencyProofs.jsx to call the endpoint;
+               local list + open dialog now update instantly, toast confirms, dialog auto-closes.
+          Please verify:
+            - Login as saurav@brightads.in / demo1234 (agency, agencyId=a1)
+            - PATCH /api/tasks/t1 body {"status":"approved"} → 200, task now approved
+            - PATCH /api/tasks/t1 body {"status":"flagged","flagReason":"Re-shoot"} → 200, flagReason set
+            - PATCH /api/tasks/t2 as admin login should still work
+            - PATCH /api/tasks/{someBrightAdsTask} as agency user login should work
+            - PATCH /api/tasks/{taskFromDifferentAgencyId} as agency user (a1) → 403
+            - PATCH /api/tasks/nonexistent → 404
+            - PATCH /api/tasks/t1 with empty body {} → 400
+      - working: true
+        agent: "testing"
+        comment: |
+          ✅ ALL 8 PATCH ENDPOINT TESTS PASSED (100% SUCCESS RATE)
+          
+          Comprehensive testing completed for PATCH /api/tasks/{id} endpoint:
+          
+          Test Results:
+          ✅ PATCH approve as agency (saurav@brightads.in, agencyId=a1) - Returns 200, status='approved', flagReason=null
+          ✅ PATCH flag with reason as agency - Returns 200, status='flagged', flagReason='Re-shoot requested by agency'
+          ✅ PATCH with empty body {} - Returns 400 'No fields to update'
+          ✅ PATCH nonexistent task id - Returns 404 'Task not found'
+          ✅ PATCH other agency's task as agency user - Returns 403 'Not your task' (tested with task from different agencyId)
+          ✅ PATCH as admin user - Returns 200, admin can update any task
+          ✅ PATCH without auth token - Returns 401 (unauthorized)
+          ✅ PATCH persistence check - Changes persist correctly in database (verified via GET /tasks)
+          
+          Endpoint Contract Verified:
+          - Auth required (Bearer JWT) ✅
+          - Body accepts {"status": "approved" | "flagged", "flagReason": "..."} ✅
+          - status="approved" clears flagReason to null ✅
+          - status="flagged" with flagReason sets both fields ✅
+          - Agency users can only PATCH their own tasks (403 for other agencies) ✅
+          - Unknown task id returns 404 ✅
+          - Empty body {} returns 400 ✅
+          
+          Spot-check of Previously-Passing Endpoints:
+          ✅ POST /auth/login (admin & agency) - Working
+          ✅ GET /agencies - Working (8 agencies, increased from 6 due to test runs)
+          ✅ GET /campaigns - Working (agency scoping correct)
+          ✅ POST /vehicle-submissions - Working (public endpoint)
+          
+          NO CRITICAL ISSUES FOUND. PATCH endpoint is fully functional and ready for production.
+
+
   - task: "Fraud Alerts (GET, POST resolve)"
     implemented: true
     working: true
@@ -339,7 +403,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 3
+  test_sequence: 4
   run_ui: true
 
 test_plan:
@@ -412,3 +476,36 @@ agent_communication:
       - Responsive layout, proper branding, consistent red theme
       
       NO CRITICAL ISSUES FOUND. Frontend is fully functional and ready for production.
+  - agent: "testing"
+    message: |
+      ✅ BUG FIX VERIFICATION COMPLETE - PATCH /api/tasks/{id} ENDPOINT FULLY WORKING
+      
+      Tested the new PATCH /api/tasks/{id} endpoint for Approve & Request re-shoot functionality.
+      All 8 test cases passed successfully (100% success rate).
+      
+      Test Results:
+      ✅ PATCH approve as agency (saurav@brightads.in, agencyId=a1) - Returns 200, status='approved', flagReason=null
+      ✅ PATCH flag with reason as agency - Returns 200, status='flagged', flagReason='Re-shoot requested by agency'
+      ✅ PATCH with empty body {} - Returns 400 'No fields to update'
+      ✅ PATCH nonexistent task id - Returns 404 'Task not found'
+      ✅ PATCH other agency's task as agency user - Returns 403 'Not your task'
+      ✅ PATCH as admin user - Returns 200, admin can update any task
+      ✅ PATCH without auth token - Returns 401 (unauthorized)
+      ✅ PATCH persistence check - Changes persist correctly in database
+      
+      Endpoint Contract Verified:
+      - Auth required (Bearer JWT) ✅
+      - Body accepts {"status": "approved" | "flagged", "flagReason": "..."} ✅
+      - status="approved" clears flagReason to null ✅
+      - status="flagged" with flagReason sets both fields ✅
+      - Agency users can only PATCH their own tasks (403 for other agencies) ✅
+      - Unknown task id returns 404 ✅
+      - Empty body {} returns 400 ✅
+      
+      Previously-Passing Endpoints Spot-Check:
+      ✅ POST /auth/login (admin & agency) - Working
+      ✅ GET /agencies - Working
+      ✅ GET /campaigns - Working
+      ✅ POST /vehicle-submissions - Working
+      
+      NO CRITICAL ISSUES FOUND. The bug fix is complete and the endpoint is production-ready.

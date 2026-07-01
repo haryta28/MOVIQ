@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
-import { Camera, MapPin, Clock, Download } from 'lucide-react';
+import { Camera, MapPin, Clock, Download, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent } from '../../components/ui/dialog';
+import { toast } from '../../hooks/use-toast';
 import api from '../../api';
 
 const gradients = [
@@ -20,10 +21,36 @@ export default function AgencyProofs() {
   const [tasks, setTasks] = useState([]);
   const [status, setStatus] = useState('all');
   const [selected, setSelected] = useState(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     (async () => { try { const r = await api.get('/tasks'); setTasks(r.data); } catch (_) {} })();
   }, []);
+
+  const updateStatus = async (newStatus, flagReason) => {
+    if (!selected) return;
+    setUpdating(true);
+    try {
+      const payload = { status: newStatus };
+      if (flagReason) payload.flagReason = flagReason;
+      const r = await api.patch(`/tasks/${selected.id}`, payload);
+      // Update in local list & selected
+      setTasks(prev => prev.map(t => t.id === selected.id ? r.data : t));
+      setSelected(r.data);
+      toast({
+        title: newStatus === 'approved' ? 'Proof approved' : 'Re-shoot requested',
+        description: newStatus === 'approved'
+          ? `${r.data.taskCode} marked as approved.`
+          : `${r.data.taskCode} sent back for re-shoot.`,
+      });
+      // Close dialog after short delay
+      setTimeout(() => setSelected(null), 600);
+    } catch (e) {
+      toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const proofs = tasks.filter(t => t.photos > 0 && (status === 'all' || t.status === status));
 
@@ -93,8 +120,22 @@ export default function AgencyProofs() {
                   <div><div className="text-xs text-slate-500">Status</div><StatusBadge status={selected.status} /></div>
                 </div>
                 <div className="flex gap-2 mt-6">
-                  <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">Approve</Button>
-                  <Button variant="outline" className="flex-1">Request re-shoot</Button>
+                  <Button
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={updating || selected.status === 'approved'}
+                    onClick={() => updateStatus('approved')}
+                  >
+                    {updating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                    {selected.status === 'approved' ? 'Approved' : 'Approve'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={updating}
+                    onClick={() => updateStatus('flagged', 'Re-shoot requested by agency')}
+                  >
+                    Request re-shoot
+                  </Button>
                 </div>
               </div>
             </div>

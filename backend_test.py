@@ -59,6 +59,8 @@ def make_request(method: str, endpoint: str, token: Optional[str] = None,
             return requests.post(url, headers=headers, json=json_data, timeout=10)
         elif method == "DELETE":
             return requests.delete(url, headers=headers, timeout=10)
+        elif method == "PATCH":
+            return requests.patch(url, headers=headers, json=json_data, timeout=10)
     except Exception as e:
         print(f"Request error: {e}")
         raise
@@ -371,6 +373,213 @@ def test_tasks_filter_by_city():
             log_test("Tasks: Filter by city works", False, "Response not a list")
     else:
         log_test("Tasks: Filter by city works", False, f"Status: {resp.status_code}")
+
+
+def test_task_patch_approve_as_agency():
+    """Test PATCH /tasks/{id} with status=approved as agency user"""
+    # Get a task belonging to agency a1
+    resp = make_request("GET", "/tasks", token=agency_token)
+    if resp.status_code != 200:
+        log_test("Tasks: PATCH approve as agency", False, "Failed to get tasks")
+        return
+    
+    tasks = resp.json()
+    if not tasks:
+        log_test("Tasks: PATCH approve as agency", False, "No tasks found for agency")
+        return
+    
+    task_id = tasks[0]["id"]
+    
+    # PATCH to approve
+    resp = make_request("PATCH", f"/tasks/{task_id}", token=agency_token, 
+                       json_data={"status": "approved"})
+    
+    if resp.status_code == 200:
+        task = resp.json()
+        if task.get("status") == "approved" and task.get("flagReason") is None:
+            log_test("Tasks: PATCH approve as agency", True)
+            return
+        log_test("Tasks: PATCH approve as agency", False, 
+                f"Status={task.get('status')}, flagReason={task.get('flagReason')}")
+    else:
+        log_test("Tasks: PATCH approve as agency", False, 
+                f"Status: {resp.status_code}, Body: {resp.text[:200]}")
+
+
+def test_task_patch_flag_with_reason_as_agency():
+    """Test PATCH /tasks/{id} with status=flagged and flagReason as agency user"""
+    # Get a task belonging to agency a1
+    resp = make_request("GET", "/tasks", token=agency_token)
+    if resp.status_code != 200:
+        log_test("Tasks: PATCH flag with reason as agency", False, "Failed to get tasks")
+        return
+    
+    tasks = resp.json()
+    if not tasks:
+        log_test("Tasks: PATCH flag with reason as agency", False, "No tasks found for agency")
+        return
+    
+    task_id = tasks[0]["id"]
+    
+    # PATCH to flag with reason
+    resp = make_request("PATCH", f"/tasks/{task_id}", token=agency_token, 
+                       json_data={"status": "flagged", "flagReason": "Re-shoot requested by agency"})
+    
+    if resp.status_code == 200:
+        task = resp.json()
+        if task.get("status") == "flagged" and task.get("flagReason") == "Re-shoot requested by agency":
+            log_test("Tasks: PATCH flag with reason as agency", True)
+            return
+        log_test("Tasks: PATCH flag with reason as agency", False, 
+                f"Status={task.get('status')}, flagReason={task.get('flagReason')}")
+    else:
+        log_test("Tasks: PATCH flag with reason as agency", False, 
+                f"Status: {resp.status_code}, Body: {resp.text[:200]}")
+
+
+def test_task_patch_empty_body():
+    """Test PATCH /tasks/{id} with empty body returns 400"""
+    # Get a task belonging to agency a1
+    resp = make_request("GET", "/tasks", token=agency_token)
+    if resp.status_code != 200:
+        log_test("Tasks: PATCH empty body returns 400", False, "Failed to get tasks")
+        return
+    
+    tasks = resp.json()
+    if not tasks:
+        log_test("Tasks: PATCH empty body returns 400", False, "No tasks found for agency")
+        return
+    
+    task_id = tasks[0]["id"]
+    
+    # PATCH with empty body
+    resp = make_request("PATCH", f"/tasks/{task_id}", token=agency_token, json_data={})
+    
+    if resp.status_code == 400:
+        log_test("Tasks: PATCH empty body returns 400", True)
+    else:
+        log_test("Tasks: PATCH empty body returns 400", False, 
+                f"Expected 400, got {resp.status_code}")
+
+
+def test_task_patch_nonexistent_id():
+    """Test PATCH /tasks/nonexistent returns 404"""
+    resp = make_request("PATCH", "/tasks/nonexistent_task_id_12345", token=agency_token, 
+                       json_data={"status": "approved"})
+    
+    if resp.status_code == 404:
+        log_test("Tasks: PATCH nonexistent id returns 404", True)
+    else:
+        log_test("Tasks: PATCH nonexistent id returns 404", False, 
+                f"Expected 404, got {resp.status_code}")
+
+
+def test_task_patch_other_agency_task_forbidden():
+    """Test PATCH /tasks/{id} for another agency's task returns 403"""
+    # Get all tasks as admin to find a task NOT belonging to a1
+    resp = make_request("GET", "/tasks", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Tasks: PATCH other agency task returns 403", False, "Failed to get tasks as admin")
+        return
+    
+    tasks = resp.json()
+    other_agency_task = None
+    for task in tasks:
+        if task.get("agencyId") != "a1":
+            other_agency_task = task
+            break
+    
+    if not other_agency_task:
+        log_test("Tasks: PATCH other agency task returns 403", False, "No tasks found for other agencies")
+        return
+    
+    # Try to PATCH as agency a1 user
+    resp = make_request("PATCH", f"/tasks/{other_agency_task['id']}", token=agency_token, 
+                       json_data={"status": "approved"})
+    
+    if resp.status_code == 403:
+        log_test("Tasks: PATCH other agency task returns 403", True)
+    else:
+        log_test("Tasks: PATCH other agency task returns 403", False, 
+                f"Expected 403, got {resp.status_code}")
+
+
+def test_task_patch_as_admin():
+    """Test PATCH /tasks/{id} as admin can update any task"""
+    # Get any task
+    resp = make_request("GET", "/tasks", token=admin_token)
+    if resp.status_code != 200:
+        log_test("Tasks: PATCH as admin", False, "Failed to get tasks")
+        return
+    
+    tasks = resp.json()
+    if not tasks:
+        log_test("Tasks: PATCH as admin", False, "No tasks found")
+        return
+    
+    task_id = tasks[0]["id"]
+    
+    # PATCH as admin
+    resp = make_request("PATCH", f"/tasks/{task_id}", token=admin_token, 
+                       json_data={"status": "approved"})
+    
+    if resp.status_code == 200:
+        task = resp.json()
+        if task.get("status") == "approved":
+            log_test("Tasks: PATCH as admin", True)
+            return
+        log_test("Tasks: PATCH as admin", False, f"Status not updated: {task.get('status')}")
+    else:
+        log_test("Tasks: PATCH as admin", False, 
+                f"Status: {resp.status_code}, Body: {resp.text[:200]}")
+
+
+def test_task_patch_without_token():
+    """Test PATCH /tasks/{id} without token returns 401"""
+    resp = make_request("PATCH", "/tasks/t1", token=None, json_data={"status": "approved"})
+    
+    if resp.status_code == 401:
+        log_test("Tasks: PATCH without token returns 401", True)
+    else:
+        log_test("Tasks: PATCH without token returns 401", False, 
+                f"Expected 401, got {resp.status_code}")
+
+
+def test_task_patch_persistence():
+    """Test PATCH /tasks/{id} persists changes"""
+    # Get a task belonging to agency a1
+    resp = make_request("GET", "/tasks", token=agency_token)
+    if resp.status_code != 200:
+        log_test("Tasks: PATCH persistence check", False, "Failed to get tasks")
+        return
+    
+    tasks = resp.json()
+    if not tasks:
+        log_test("Tasks: PATCH persistence check", False, "No tasks found for agency")
+        return
+    
+    task_id = tasks[0]["id"]
+    
+    # PATCH to approved
+    resp = make_request("PATCH", f"/tasks/{task_id}", token=agency_token, 
+                       json_data={"status": "approved"})
+    
+    if resp.status_code != 200:
+        log_test("Tasks: PATCH persistence check", False, "PATCH failed")
+        return
+    
+    # GET tasks again and verify the change persisted
+    resp = make_request("GET", "/tasks", token=agency_token)
+    if resp.status_code == 200:
+        tasks = resp.json()
+        updated_task = next((t for t in tasks if t["id"] == task_id), None)
+        if updated_task and updated_task.get("status") == "approved":
+            log_test("Tasks: PATCH persistence check", True)
+            return
+        log_test("Tasks: PATCH persistence check", False, 
+                f"Status not persisted: {updated_task.get('status') if updated_task else 'task not found'}")
+    else:
+        log_test("Tasks: PATCH persistence check", False, "Failed to verify persistence")
 
 
 # ============================================================================
@@ -758,6 +967,18 @@ def run_all_tests():
     test_tasks_get_as_agency()
     test_tasks_filter_by_status()
     test_tasks_filter_by_city()
+    print()
+    
+    # Task PATCH tests (bug fix verification)
+    print("--- TASK UPDATE (PATCH) TESTS ---")
+    test_task_patch_approve_as_agency()
+    test_task_patch_flag_with_reason_as_agency()
+    test_task_patch_empty_body()
+    test_task_patch_nonexistent_id()
+    test_task_patch_other_agency_task_forbidden()
+    test_task_patch_as_admin()
+    test_task_patch_without_token()
+    test_task_patch_persistence()
     print()
     
     # Users tests
