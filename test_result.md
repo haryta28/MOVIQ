@@ -474,6 +474,78 @@ frontend:
       - working: true
         agent: "testing"
         comment: "✅ Login page fully functional: Moviq logo and red theme present, 3 role tiles (Platform Admin, Agency, Field Executive) working, auto-fill credentials working (admin@moviq.in, saurav@brightads.in), successful login redirects to correct dashboard, wrong password shows error toast 'Login failed - Invalid credentials', logout working correctly."
+      - working: false
+        agent: "user"
+        comment: "User reported 'unable to login' bug. Users with stale localStorage (moviq_user exists but moviq_token missing) were unable to login."
+      - working: "NA"
+        agent: "main"
+        comment: |
+          Applied fix for stale localStorage bug:
+          1. AuthContext.jsx - On initial mount, if moviq_user exists but moviq_token is missing/mismatched, both keys are cleared (lines 7-18). This handles users with stale state from earlier mock-only sessions.
+          2. LoginPage.jsx - Added useEffect (lines 25-29) that clears both moviq_token and moviq_user from localStorage as soon as the login page is visited. Email/password now pre-filled with admin@moviq.in / demo1234 on first mount (lines 22-23).
+          Please verify 5 scenarios:
+          1. Clean session - Admin login (default pre-filled)
+          2. Clean session - Agency login (click Agency tile)
+          3. Stale localStorage - the reported bug case
+          4. Wrong credentials
+          5. After login, refresh survives
+      - working: true
+        agent: "testing"
+        comment: |
+          ✅ ALL 5 LOGIN SCENARIOS PASSED (100% SUCCESS RATE) - BUG FIX VERIFIED
+          
+          Comprehensive testing completed for login bug fix at https://video-replica-ai.preview.emergentagent.com/login
+          
+          Test Results:
+          
+          ✅ SCENARIO 1: Clean session - Admin login (default pre-filled)
+             - Email pre-filled with "admin@moviq.in" ✅
+             - Password pre-filled with "demo1234" ✅
+             - Admin role tile selected by default ✅
+             - Click "Sign in" (without clicking role tile first) navigates to /admin ✅
+             - Platform Overview page rendered ✅
+             - Token and user stored in localStorage ✅
+          
+          ✅ SCENARIO 2: Clean session - Agency login
+             - Fresh browser context ✅
+             - Clicked "Agency" role tile ✅
+             - Email auto-filled to "saurav@brightads.in" ✅
+             - Password auto-filled to "demo1234" ✅
+             - Click "Sign in" navigates to /agency ✅
+             - Sidebar shows "BrightAds Media" agency name ✅
+          
+          ✅ SCENARIO 3: Stale localStorage - THE REPORTED BUG CASE (CRITICAL FIX)
+             - Set stale user in localStorage: {id:'u1', name:'Old User', role:'admin', email:'stale@x.com'} ✅
+             - Did NOT set moviq_token (simulating the bug scenario) ✅
+             - Reloaded page and navigated to /login ✅
+             - User treated as logged out (LoginPage displayed) ✅
+             - Stale keys (moviq_user and moviq_token) cleared from localStorage ✅
+             - Admin credentials pre-filled correctly ✅
+             - Click "Sign in" successfully navigates to /admin ✅
+             - **THIS IS THE KEY FIX - THE REPORTED BUG IS RESOLVED!** ✅
+          
+          ✅ SCENARIO 4: Wrong credentials
+             - Changed password to "wrong-password" ✅
+             - Click "Sign in" stays on /login page ✅
+             - Error toast "Login failed - Invalid credentials" displayed ✅
+             - No token/user written to localStorage ✅
+          
+          ✅ SCENARIO 5: After login, refresh survives
+             - Logged in as admin to /admin ✅
+             - Reloaded page while on /admin ✅
+             - Stayed logged in on /admin (not bounced to /login) ✅
+             - Platform Overview page still rendered after reload ✅
+          
+          Browser Console Check:
+          - No error elements found on the page ✅
+          
+          Fix Verification:
+          - AuthContext.jsx fix working: Clears stale user if token is missing on mount ✅
+          - LoginPage.jsx fix working: Clears localStorage on page visit, pre-fills admin credentials ✅
+          - Session persistence working: Refresh maintains login state ✅
+          - Error handling working: Wrong credentials show proper error toast ✅
+          
+          NO CRITICAL ISSUES FOUND. The login bug is completely fixed and all authentication flows are working correctly.
 
   - task: "Admin Dashboard - All Pages"
     implemented: true
@@ -681,3 +753,49 @@ agent_communication:
       - One old seeded notification (n1) is missing createdAt field. This doesn't affect new functionality - all notifications created by triggers have the field and are sorted correctly.
       
       NO CRITICAL ISSUES FOUND. All 4 new features are production-ready.
+  - agent: "testing"
+    message: |
+      ✅ LOGIN BUG FIX VERIFICATION COMPLETE - ALL 5 SCENARIOS PASSED (100% SUCCESS RATE)
+      
+      User reported "unable to login" bug at https://video-replica-ai.preview.emergentagent.com
+      Root cause: Users with stale localStorage (moviq_user exists but moviq_token missing) were unable to login.
+      
+      Fix Applied:
+      1. AuthContext.jsx - Clears both moviq_user and moviq_token if user exists but token is missing on mount
+      2. LoginPage.jsx - Clears localStorage on page visit, pre-fills admin@moviq.in / demo1234 by default
+      
+      Test Results:
+      
+      ✅ SCENARIO 1: Clean session - Admin login (default pre-filled)
+         - Email pre-filled with "admin@moviq.in" ✅
+         - Password pre-filled with "demo1234" ✅
+         - Admin role tile selected by default ✅
+         - Click "Sign in" navigates to /admin ✅
+         - Platform Overview rendered, token/user stored ✅
+      
+      ✅ SCENARIO 2: Clean session - Agency login
+         - Click "Agency" tile auto-fills saurav@brightads.in / demo1234 ✅
+         - Click "Sign in" navigates to /agency ✅
+         - Sidebar shows "BrightAds Media" ✅
+      
+      ✅ SCENARIO 3: Stale localStorage - THE REPORTED BUG CASE (CRITICAL FIX)
+         - Set stale user without token in localStorage ✅
+         - Reload page → user treated as logged out ✅
+         - Stale keys cleared from localStorage ✅
+         - Admin credentials pre-filled ✅
+         - Click "Sign in" successfully navigates to /admin ✅
+         - **THE REPORTED BUG IS COMPLETELY RESOLVED!** ✅
+      
+      ✅ SCENARIO 4: Wrong credentials
+         - Changed password to "wrong-password" ✅
+         - Stays on /login, shows error toast "Login failed - Invalid credentials" ✅
+         - No token/user written to localStorage ✅
+      
+      ✅ SCENARIO 5: After login, refresh survives
+         - Logged in to /admin, reloaded page ✅
+         - Stayed logged in on /admin (not bounced to /login) ✅
+         - Platform Overview still rendered ✅
+      
+      Browser Console: No error elements found ✅
+      
+      NO CRITICAL ISSUES FOUND. The login bug is completely fixed and all authentication flows are working correctly.

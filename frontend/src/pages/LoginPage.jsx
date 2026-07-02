@@ -19,8 +19,14 @@ export default function LoginPage() {
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const [selected, setSelected] = useState('admin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@moviq.in');
+  const [password, setPassword] = useState('demo1234');
+
+  React.useEffect(() => {
+    // Clear any stale auth state as soon as user visits the login page.
+    localStorage.removeItem('moviq_token');
+    localStorage.removeItem('moviq_user');
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
