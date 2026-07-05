@@ -46,8 +46,8 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('moviq_user');
           setUser(null);
         });
-    }
-     
+      
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = async (email, password) => {

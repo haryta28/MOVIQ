@@ -65,6 +65,7 @@ export default function WhatsAppBot() {
     setTimeout(() => pushBot(`Namaste 🙏 Welcome to *${MOVIQ_NAME} Field Assistant*`), 400);
     setTimeout(() => pushBot('I help you register vehicle branding proofs directly on WhatsApp — no app needed.'), 1200);
     setTimeout(() => pushBot('Type *Hi* to begin. 👇'), 2000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const push = (m) => setMessages(prev => [...prev, { ...m, time: nowTime(), id: Date.now() + Math.random() }]);
