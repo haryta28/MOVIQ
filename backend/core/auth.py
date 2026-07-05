@@ -3,15 +3,25 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 import jwt
+import bcrypt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from passlib.context import CryptContext
 
 from .config import JWT_ALGORITHM, JWT_EXPIRE_HOURS, JWT_SECRET
 from .db import db
 from .helpers import _clean
 
-pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+class PasswordContext:
+    def hash(self, password: str) -> str:
+        return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    def verify(self, password: str, hashed: str) -> bool:
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+        except Exception:
+            return False
+
+pwd_ctx = PasswordContext()
 _bearer = HTTPBearer(auto_error=False)
 
 
