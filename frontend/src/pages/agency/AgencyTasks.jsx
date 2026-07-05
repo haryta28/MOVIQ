@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -6,18 +6,14 @@ import { PageHeader, StatusBadge } from '../../components/Shared';
 import { Search, MapPin, Filter, ChevronRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import api from '../../api';
+import useApi from '../../hooks/useApi';
 
 export default function AgencyTasks() {
-  const [tasks, setTasks] = useState([]);
+  const { data: tasks = [] } = useApi('/tasks');
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [city, setCity] = useState('all');
   const [selected, setSelected] = useState(null);
-
-  useEffect(() => {
-    (async () => { try { const r = await api.get('/tasks'); setTasks(r.data); } catch (_) {} })();
-  }, []);
 
   const cities = ['all', ...Array.from(new Set(tasks.map(t => t.city)))];
 

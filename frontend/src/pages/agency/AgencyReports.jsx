@@ -1,25 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, ProgressBar } from '../../components/Shared';
 import { Download, Share2, FileBarChart, TrendingUp, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
-import api, { API_BASE } from '../../api';
+import { API_BASE } from '../../api';
+import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyReports() {
-  const [campaigns, setCampaigns] = useState([]);
-  const [cityStats, setCityStats] = useState([]);
+  const { results } = useParallelApi(['/campaigns', '/analytics/overview']);
+  const [campaigns = [], analyticsRaw = {}] = results;
+  const cityStats = analyticsRaw?.cityStats || [];
   const [downloading, setDownloading] = useState(null); // "{id}-pdf" or "{id}-excel"
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [c, an] = await Promise.all([api.get('/campaigns'), api.get('/analytics/overview')]);
-        setCampaigns(c.data);
-        setCityStats(an.data.cityStats || []);
-      } catch (_) {}
-    })();
-  }, []);
 
   const download = async (cid, kind, title) => {
     const key = `${cid}-${kind}`;

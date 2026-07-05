@@ -1,23 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { Plus, Phone, MapPin, ListChecks, UserCog, User } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
-import api from '../../api';
+import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyTeam() {
-  const [field, setField] = useState([]);
-  const [supers, setSupers] = useState([]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [f, s] = await Promise.all([api.get('/users?role=field'), api.get('/users?role=supervisor')]);
-        setField(f.data); setSupers(s.data);
-      } catch (_) {}
-    })();
-  }, []);
+  const { results } = useParallelApi(['/users?role=field', '/users?role=supervisor']);
+  const [field = [], supers = []] = results;
 
   return (
     <div className="space-y-6">

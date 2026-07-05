@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent } from '../../components/ui/dialog';
 import { toast } from '../../hooks/use-toast';
 import api from '../../api';
+import useApi from '../../hooks/useApi';
 
 const gradients = [
   'from-orange-400 to-rose-500',
@@ -18,14 +19,12 @@ const gradients = [
 ];
 
 export default function AgencyProofs() {
-  const [tasks, setTasks] = useState([]);
+  const { data: fetchedTasks = [] } = useApi('/tasks');
+  const [localTasks, setLocalTasks] = useState(null); // null = use fetched
+  const tasks = localTasks ?? fetchedTasks;
   const [status, setStatus] = useState('all');
   const [selected, setSelected] = useState(null);
   const [updating, setUpdating] = useState(false);
-
-  useEffect(() => {
-    (async () => { try { const r = await api.get('/tasks'); setTasks(r.data); } catch (_) {} })();
-  }, []);
 
   const updateStatus = async (newStatus, flagReason) => {
     if (!selected) return;
@@ -35,7 +34,7 @@ export default function AgencyProofs() {
       if (flagReason) payload.flagReason = flagReason;
       const r = await api.patch(`/tasks/${selected.id}`, payload);
       // Update in local list & selected
-      setTasks(prev => prev.map(t => t.id === selected.id ? r.data : t));
+      setLocalTasks(tasks.map(t => t.id === selected.id ? r.data : t));
       setSelected(r.data);
       toast({
         title: newStatus === 'approved' ? 'Proof approved' : 'Re-shoot requested',

@@ -3,19 +3,33 @@ import api from '../api';
 
 const AuthContext = createContext(null);
 
+/**
+ * Decodes a JWT and checks if it is expired.
+ * Returns true if expired or malformed, false if still valid.
+ */
+const isTokenExpired = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // payload.exp is in seconds; Date.now() is in milliseconds
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true; // Treat malformed tokens as expired
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('moviq_user');
     const token = localStorage.getItem('moviq_token');
-    // Only trust stored user if a matching token also exists.
-    // This clears stale state from earlier mock-only sessions.
-    if (stored && token) {
+    // Only restore session if token exists AND is not expired
+    if (stored && token && !isTokenExpired(token)) {
       try { return JSON.parse(stored); } catch (_) { /* fallthrough */ }
     }
     localStorage.removeItem('moviq_user');
     localStorage.removeItem('moviq_token');
     return null;
   });
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

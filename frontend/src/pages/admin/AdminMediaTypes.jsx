@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/Shared';
 import { Plus, Layers, Bus, Car, Building, Home, ShoppingBag, Trash2 } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
 import api from '../../api';
+import useApi from '../../hooks/useApi';
 
 const iconFor = (label) => {
   const l = label.toLowerCase();
@@ -18,19 +19,18 @@ const iconFor = (label) => {
 };
 
 export default function AdminMediaTypes() {
-  const [types, setTypes] = useState([]);
+  const { data: fetched = [] } = useApi('/media-types');
+  const [types, setTypes] = useState(null); // null = use fetched
+  const displayed = types ?? fetched;
   const [newLabel, setNewLabel] = useState('');
 
-  useEffect(() => { load(); }, []);
-  const load = async () => { try { const r = await api.get('/media-types'); setTypes(r.data); } catch (_) {} };
-
-  const groups = types.reduce((acc, t) => { acc[t.category] = acc[t.category] || []; acc[t.category].push(t); return acc; }, {});
+  const groups = displayed.reduce((acc, t) => { acc[t.category] = acc[t.category] || []; acc[t.category].push(t); return acc; }, {});
 
   const add = async () => {
     if (!newLabel.trim()) return;
     try {
       const r = await api.post('/media-types', { label: newLabel, category: 'Custom' });
-      setTypes([...types, r.data]);
+      setTypes([...displayed, r.data]);
       toast({ title: 'Media type added', description: `"${r.data.label}" is now available.` });
       setNewLabel('');
     } catch (e) {
@@ -41,7 +41,7 @@ export default function AdminMediaTypes() {
   const remove = async (key) => {
     try {
       await api.delete(`/media-types/${key}`);
-      setTypes(types.filter(t => t.key !== key));
+      setTypes(displayed.filter(t => t.key !== key));
     } catch (e) {
       toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
     }

@@ -1,35 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card } from '../../components/ui/card';
 import { KpiCard, StatusBadge, PageHeader, ProgressBar, MiniBarChart } from '../../components/Shared';
 import { Megaphone, ListChecks, Users, Camera, Plus, ArrowUpRight, MapPin, Clock } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../api';
+import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyOverview() {
   const { user } = useAuth();
-  const [campaigns, setCampaigns] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [team, setTeam] = useState([]);
-  const [analytics, setAnalytics] = useState({ monthlyStats: [] });
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [c, t, u, an] = await Promise.all([
-          api.get('/campaigns'),
-          api.get('/tasks'),
-          api.get('/users?role=field'),
-          api.get('/analytics/overview'),
-        ]);
-        setCampaigns(c.data);
-        setTasks(t.data);
-        setTeam(u.data);
-        setAnalytics(an.data);
-      } catch (_) {}
-    })();
-  }, []);
+  const { results } = useParallelApi(['/campaigns', '/tasks', '/users?role=field', '/analytics/overview']);
+  const [
+    campaigns = [],
+    tasks = [],
+    team = [],
+    analytics = { monthlyStats: [] }
+  ] = results;
 
   const completed = campaigns.reduce((s, c) => s + (c.completed || 0), 0);
   const total = campaigns.reduce((s, c) => s + (c.totalTasks || 0), 0);

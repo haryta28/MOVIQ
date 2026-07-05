@@ -1,33 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card } from '../../components/ui/card';
 import { KpiCard, StatusBadge, PageHeader, MiniBarChart, ProgressBar } from '../../components/Shared';
 import { Building2, Megaphone, ListChecks, IndianRupee, ShieldAlert, MapPin, ArrowUpRight } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Link } from 'react-router-dom';
-import api from '../../api';
+import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AdminOverview() {
-  const [agencies, setAgencies] = useState([]);
-  const [campaigns, setCampaigns] = useState([]);
-  const [fraudAlerts, setFraudAlerts] = useState([]);
-  const [analytics, setAnalytics] = useState({ monthlyStats: [], cityStats: [], kpis: {} });
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [a, c, f, an] = await Promise.all([
-          api.get('/agencies'),
-          api.get('/campaigns'),
-          api.get('/fraud-alerts'),
-          api.get('/analytics/overview'),
-        ]);
-        setAgencies(a.data);
-        setCampaigns(c.data);
-        setFraudAlerts(f.data);
-        setAnalytics(an.data);
-      } catch (e) { /* ignore */ }
-    })();
-  }, []);
+  const { results } = useParallelApi([
+    '/agencies', '/campaigns', '/fraud-alerts', '/analytics/overview',
+  ]);
+  const [
+    agencies = [],
+    campaigns = [],
+    fraudAlerts = [],
+    analytics = { monthlyStats: [], cityStats: [], kpis: {} }
+  ] = results;
 
   const kpis = analytics.kpis || {};
 

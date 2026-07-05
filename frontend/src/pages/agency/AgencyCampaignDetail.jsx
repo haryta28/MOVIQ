@@ -6,25 +6,22 @@ import { PageHeader, StatusBadge, ProgressBar } from '../../components/Shared';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
 import { ArrowLeft, Calendar, MapPin, Megaphone, IndianRupee, Download, FileSpreadsheet, Users, ListChecks, ShieldAlert, Camera, TrendingUp } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
-import api, { API_BASE } from '../../api';
+import { API_BASE } from '../../api';
+import useApi from '../../hooks/useApi';
 
 export default function AgencyCampaignDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
+  const { data, error } = useApi(`/campaigns/${id}`);
   const [downloading, setDownloading] = useState(null);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const r = await api.get(`/campaigns/${id}`);
-        setData(r.data);
-      } catch (e) {
-        toast({ title: 'Unable to load campaign', description: e?.response?.data?.detail || 'Please retry.' });
-        navigate('/agency/campaigns');
-      }
-    })();
-  }, [id, navigate]);
+    if (error) {
+      toast({ title: 'Unable to load campaign', description: error || 'Please retry.' });
+      navigate('/agency/campaigns');
+    }
+  }, [error, navigate]);
+
 
   const download = async (kind) => {
     setDownloading(kind);

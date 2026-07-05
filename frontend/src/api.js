@@ -17,6 +17,10 @@ api.interceptors.response.use(
     if (err?.response?.status === 401) {
       localStorage.removeItem('moviq_token');
       localStorage.removeItem('moviq_user');
+      // Redirect to login unless already there (prevents redirect loops)
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(err);
   }

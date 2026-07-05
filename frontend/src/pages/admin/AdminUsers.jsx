@@ -1,26 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { Plus, Search, Shield, Building2, UserCog, User } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
-import api from '../../api';
+import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AdminUsers() {
   const [q, setQ] = useState('');
   const [tab, setTab] = useState('admin');
-  const [rows, setRows] = useState({ admin: [], agency: [], supervisor: [], field: [] });
-
-  useEffect(() => {
-    (async () => {
-      const roles = ['admin', 'agency', 'supervisor', 'field'];
-      const results = await Promise.all(roles.map(r => api.get(`/users?role=${r}`).catch(() => ({ data: [] }))));
-      const next = {};
-      roles.forEach((r, i) => { next[r] = results[i].data; });
-      setRows(next);
-    })();
-  }, []);
+  const { results } = useParallelApi([
+    '/users?role=admin', '/users?role=agency', '/users?role=supervisor', '/users?role=field',
+  ]);
+  const [adminUsers = [], agencyUsers = [], supervisors = [], fieldUsers = []] = results;
+  const rows = { admin: adminUsers, agency: agencyUsers, supervisor: supervisors, field: fieldUsers };
 
   const filter = (arr) => arr.filter(u => (u.name || '').toLowerCase().includes(q.toLowerCase()));
 

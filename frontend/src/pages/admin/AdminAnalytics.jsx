@@ -1,23 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card } from '../../components/ui/card';
 import { PageHeader, MiniBarChart } from '../../components/Shared';
 import { Button } from '../../components/ui/button';
 import { TrendingUp, Users, ListChecks, ShieldCheck, Camera, MapPin } from 'lucide-react';
-import api from '../../api';
+import useParallelApi from '../../hooks/useParallelApi';
+
 
 export default function AdminAnalytics() {
-  const [analytics, setAnalytics] = useState({ monthlyStats: [], cityStats: [] });
-  const [brands, setBrands] = useState([]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [an, br] = await Promise.all([api.get('/analytics/overview'), api.get('/brands')]);
-        setAnalytics(an.data);
-        setBrands(br.data);
-      } catch (_) {}
-    })();
-  }, []);
+  const { results } = useParallelApi(['/analytics/overview', '/brands']);
+  const [analyticsRaw, brandsRaw] = results;
+  const analytics = analyticsRaw || { monthlyStats: [], cityStats: [] };
+  const brands = brandsRaw || [];
 
   const maxCityTasks = Math.max(1, ...(analytics.cityStats.map(c => c.tasks) || [1]));
 

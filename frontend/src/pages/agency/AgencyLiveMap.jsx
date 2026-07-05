@@ -1,23 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { MapPin, Layers, Calendar, Filter } from 'lucide-react';
-import api from '../../api';
+import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyLiveMap() {
-  const [tasks, setTasks] = useState([]);
-  const [cityStats, setCityStats] = useState([]);
+  const { results } = useParallelApi(['/tasks', '/analytics/overview']);
+  const [tasks = [], analyticsRaw = {}] = results;
+  const cityStats = analyticsRaw?.cityStats || [];
   const [selected, setSelected] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [t, an] = await Promise.all([api.get('/tasks'), api.get('/analytics/overview')]);
-        setTasks(t.data); setCityStats(an.data.cityStats || []);
-      } catch (_) {}
-    })();
-  }, []);
 
   const totalToday = tasks.filter(t => t.status !== 'pending').length;
   const flagged = tasks.filter(t => t.status === 'flagged').length;

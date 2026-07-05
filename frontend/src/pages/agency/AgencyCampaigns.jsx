@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -10,28 +10,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from '../../hooks/use-toast';
 import api from '../../api';
+import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyCampaigns() {
-  const [campaigns, setCampaigns] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [mediaTypes, setMediaTypes] = useState([]);
+  const { results } = useParallelApi(['/campaigns', '/brands', '/media-types']);
+  const [fetchedCampaigns = [], brands = [], mediaTypes = []] = results;
+  const [localCampaigns, setLocalCampaigns] = useState(null); // null = use fetched
+  const campaigns = localCampaigns ?? fetchedCampaigns;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: '', brand: '', mediaType: '', city: '', totalTasks: 100, budget: 100000, startDate: '', endDate: '' });
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [c, b, m] = await Promise.all([api.get('/campaigns'), api.get('/brands'), api.get('/media-types')]);
-        setCampaigns(c.data); setBrands(b.data); setMediaTypes(m.data);
-      } catch (_) {}
-    })();
-  }, []);
 
   const create = async () => {
     if (!form.title || !form.brand) { toast({ title: 'Missing fields' }); return; }
     try {
       const r = await api.post('/campaigns', form);
-      setCampaigns([r.data, ...campaigns]);
+      setLocalCampaigns([r.data, ...campaigns]);
       setOpen(false);
       toast({ title: 'Campaign created', description: `${r.data.title} is now live.` });
     } catch (e) {

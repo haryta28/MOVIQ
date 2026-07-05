@@ -74,3 +74,21 @@ code {
                     linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* ── Remove any injected third-party badges (e.g. Emergent) ── */
+#emergent-badge,
+a[href*="emergent"],
+a[href*="emergent.sh"],
+div[id*="emergent"],
+div[class*="emergent"],
+iframe[src*="emergent"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  clip: rect(0,0,0,0) !important;
+  overflow: hidden !important;
+}

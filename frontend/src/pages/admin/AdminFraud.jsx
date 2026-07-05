@@ -1,24 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { ShieldAlert, CheckCircle2, X, MapPin, Image as ImageIcon, Clock } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
 import api from '../../api';
+import useApi from '../../hooks/useApi';
 
 export default function AdminFraud() {
-  const [alerts, setAlerts] = useState([]);
-
-  useEffect(() => {
-    (async () => {
-      try { const r = await api.get('/fraud-alerts'); setAlerts(r.data); } catch (_) {}
-    })();
-  }, []);
+  const { data: fetchedAlerts = [] } = useApi('/fraud-alerts');
+  const [alerts, setAlerts] = useState(null); // null = use fetched, array = after resolve
+  const displayed = alerts ?? fetchedAlerts;
 
   const resolve = async (id) => {
     try {
       await api.post(`/fraud-alerts/${id}/resolve`);
-      setAlerts(alerts.filter(a => a.id !== id));
+      setAlerts(displayed.filter(a => a.id !== id));
       toast({ title: 'Alert resolved', description: 'Alert marked as reviewed and closed.' });
     } catch (e) {
       toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
@@ -36,7 +33,7 @@ export default function AdminFraud() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-5">
           <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Open alerts</div>
-          <div className="text-3xl font-bold text-rose-600 mt-1">{alerts.length}</div>
+          <div className="text-3xl font-bold text-rose-600 mt-1">{displayed.length}</div>
           <div className="text-xs text-slate-500 mt-1">Requires review</div>
         </Card>
         <Card className="p-5">
@@ -62,7 +59,7 @@ export default function AdminFraud() {
           <div className="font-semibold text-slate-900">Live alerts</div>
         </div>
         <div className="space-y-3">
-          {alerts.map(a => (
+          {displayed.map(a => (
             <div key={a.id} className="flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-slate-200 transition">
               <div className={`h-11 w-11 rounded-lg flex items-center justify-center ${a.severity === 'high' ? 'bg-rose-50 text-rose-600' : a.severity === 'medium' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
                 {a.type.includes('GPS') ? <MapPin className="h-5 w-5" /> : a.type.includes('Photo') ? <ImageIcon className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
@@ -86,7 +83,7 @@ export default function AdminFraud() {
               </div>
             </div>
           ))}
-          {alerts.length === 0 && (
+          {displayed.length === 0 && (
             <div className="py-10 text-center text-slate-500">
               <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500" />
               <div className="font-medium text-slate-700">All clear!</div>

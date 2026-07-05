@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -9,20 +9,18 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from '../../hooks/use-toast';
 import api from '../../api';
+import useApi from '../../hooks/useApi';
+
 
 export default function AdminAgencies() {
-  const [agencies, setAgencies] = useState([]);
+  const { data: fetchedAgencies = [], refetch } = useApi('/agencies');
+  const [agencies, setAgencies] = useState(null); // null = use fetched, array = local override
+  const displayed = agencies ?? fetchedAgencies;
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', head: '', email: '', phone: '', city: '', plan: 'Growth' });
 
-  const fetchAgencies = async () => {
-    try { const r = await api.get('/agencies'); setAgencies(r.data); } catch (_) {}
-  };
-
-  useEffect(() => { fetchAgencies(); }, []);
-
-  const filtered = agencies.filter(a =>
+  const filtered = displayed.filter(a =>
     a.name.toLowerCase().includes(q.toLowerCase()) ||
     (a.city || '').toLowerCase().includes(q.toLowerCase())
   );
@@ -31,7 +29,7 @@ export default function AdminAgencies() {
     if (!form.name || !form.email) { toast({ title: 'Missing fields', description: 'Name and email are required.' }); return; }
     try {
       const r = await api.post('/agencies', form);
-      setAgencies([r.data, ...agencies]);
+      setAgencies([r.data, ...displayed]);
       setOpen(false);
       setForm({ name: '', head: '', email: '', phone: '', city: '', plan: 'Growth' });
       toast({ title: 'Agency onboarded', description: `${r.data.name} is now active on ${r.data.plan} plan.` });
