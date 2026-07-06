@@ -3,10 +3,11 @@ import { Card } from '../../components/ui/card';
 import { KpiCard, StatusBadge, PageHeader, MiniBarChart, ProgressBar } from '../../components/Shared';
 import { Building2, Megaphone, ListChecks, IndianRupee, ShieldAlert, MapPin, ArrowUpRight } from 'lucide-react';
 import { Button } from '../../components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AdminOverview() {
+  const navigate = useNavigate();
   const { results } = useParallelApi([
     '/agencies', '/campaigns', '/fraud-alerts', '/analytics/overview',
   ]);
@@ -67,8 +68,12 @@ export default function AdminOverview() {
           </div>
           <div className="space-y-3">
             {fraudAlerts.slice(0, 4).map(a => (
-              <div key={a.id} className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:border-slate-200 transition">
-                <div className={`h-9 w-9 rounded-md flex items-center justify-center ${a.severity === 'high' ? 'bg-rose-50 text-rose-600' : a.severity === 'medium' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
+              <button 
+                key={a.id} 
+                onClick={() => navigate('/admin/fraud', { state: { highlightAlertId: a.id } })}
+                className="w-full text-left flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:border-slate-200 transition hover:bg-slate-50 border-transparent"
+              >
+                <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${a.severity === 'high' ? 'bg-rose-50 text-rose-600' : a.severity === 'medium' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
                   <ShieldAlert className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -79,7 +84,7 @@ export default function AdminOverview() {
                   <div className="text-xs text-slate-500 mt-0.5 truncate">{a.agency} · {a.taskCode}</div>
                 </div>
                 <div className="text-xs text-slate-400 shrink-0">{a.detectedAt}</div>
-              </div>
+              </button>
             ))}
           </div>
         </Card>

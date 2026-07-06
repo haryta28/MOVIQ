@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
@@ -8,6 +9,7 @@ import api from '../../api';
 import useApi from '../../hooks/useApi';
 
 export default function AdminFraud() {
+  const location = useLocation();
   const { data: fetchedAlerts = [] } = useApi('/fraud-alerts');
   const [alerts, setAlerts] = useState(null); // null = use fetched, array = after resolve
   const displayed = alerts ?? fetchedAlerts;
@@ -60,7 +62,14 @@ export default function AdminFraud() {
         </div>
         <div className="space-y-3">
           {displayed.map(a => (
-            <div key={a.id} className="flex items-start gap-4 p-4 rounded-lg border border-slate-100 hover:border-slate-200 transition">
+            <div 
+              key={a.id} 
+              className={`flex items-start gap-4 p-4 rounded-lg border transition ${
+                location.state?.highlightAlertId === a.id
+                  ? 'border-rose-400 bg-rose-50/30 ring-2 ring-rose-500/20 shadow-md scale-[1.01]'
+                  : 'border-slate-100 hover:border-slate-200'
+              }`}
+            >
               <div className={`h-11 w-11 rounded-lg flex items-center justify-center ${a.severity === 'high' ? 'bg-rose-50 text-rose-600' : a.severity === 'medium' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
                 {a.type.includes('GPS') ? <MapPin className="h-5 w-5" /> : a.type.includes('Photo') ? <ImageIcon className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
               </div>
