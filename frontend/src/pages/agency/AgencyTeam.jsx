@@ -1,21 +1,113 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 import { PageHeader, StatusBadge } from '../../components/Shared';
 import { Plus, Phone, MapPin, ListChecks, UserCog, User } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
+import { Label } from '../../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { toast } from '../../hooks/use-toast';
+import api from '../../api';
 import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyTeam() {
   const { results } = useParallelApi(['/users?role=field', '/users?role=supervisor']);
   const [field = [], supers = []] = results;
 
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ name: '', role: 'field', email: '', phone: '', city: '', supervisor: '' });
+
+  const create = async () => {
+    if (!form.name || !form.role || !form.city) {
+      toast({ title: 'Missing fields', description: 'Name, Role and City are required.' });
+      return;
+    }
+    if (form.role === 'field' && !form.phone) {
+      toast({ title: 'Missing fields', description: 'Phone is required for Field Executives.' });
+      return;
+    }
+    if (form.role === 'supervisor' && !form.email) {
+      toast({ title: 'Missing fields', description: 'Email is required for Supervisors.' });
+      return;
+    }
+    try {
+      await api.post('/users', form);
+      setOpen(false);
+      setForm({ name: '', role: 'field', email: '', phone: '', city: '', supervisor: '' });
+      toast({ title: 'Member added', description: `${form.name} was successfully registered.` });
+      // Reload the page to refresh the team lists
+      window.location.reload();
+    } catch (e) {
+      toast({ title: 'Failed to add member', description: e?.response?.data?.detail || 'Try again.' });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Field Team"
         description="Your on-ground team hierarchy: supervisors and field executives."
-        actions={<Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> Add member</Button>}
+        actions={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> Add member</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader><DialogTitle>Add Team Member</DialogTitle></DialogHeader>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <Label>Full Name *</Label>
+                  <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="mt-1" placeholder="Manoj Yadav" />
+                </div>
+                <div className="col-span-2">
+                  <Label>Role *</Label>
+                  <Select value={form.role} onValueChange={v => setForm({...form, role: v, email: '', phone: '', supervisor: ''})}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="field">Field Executive</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.role === 'field' && (
+                  <>
+                    <div>
+                      <Label>Phone Number *</Label>
+                      <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="mt-1" placeholder="+91 98123 45674" />
+                    </div>
+                    <div>
+                      <Label>Reports to (Supervisor)</Label>
+                      <Select value={form.supervisor} onValueChange={v => setForm({...form, supervisor: v})}>
+                        <SelectTrigger className="mt-1"><SelectValue placeholder="Select Supervisor" /></SelectTrigger>
+                        <SelectContent>
+                          {supers.map(s => (
+                            <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+                {form.role === 'supervisor' && (
+                  <div className="col-span-2">
+                    <Label>Email *</Label>
+                    <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="mt-1" placeholder="kundan@brightads.in" />
+                  </div>
+                )}
+                <div className="col-span-2">
+                  <Label>City *</Label>
+                  <Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} className="mt-1" placeholder="Delhi" />
+                </div>
+              </div>
+              <DialogFooter className="mt-4 gap-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={create}>Add Member</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
       />
 
       <Tabs defaultValue="field">
