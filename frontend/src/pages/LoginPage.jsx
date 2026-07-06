@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Card } from '../components/ui/card';
 import { Shield, Building2, MessageCircle, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { MOVIQ_LOGO, MOVIQ_NAME, MOVIQ_TAGLINE } from '../brand';
 import { toast } from '../hooks/use-toast';
@@ -19,8 +18,8 @@ export default function LoginPage() {
   const { user, login, loading } = useAuth();
   const navigate = useNavigate();
   const [selected, setSelected] = useState('admin');
-  const [email, setEmail] = useState('admin@moviq.in');
-  const [password, setPassword] = useState('demo1234');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   React.useEffect(() => {
     if (user) {
@@ -38,13 +37,6 @@ export default function LoginPage() {
     } catch (err) {
       toast({ title: 'Login failed', description: err?.response?.data?.detail || 'Please check credentials.' });
     }
-  };
-
-  const prefill = (key) => {
-    setSelected(key);
-    if (key === 'admin') { setEmail('admin@moviq.in'); setPassword('demo1234'); }
-    else if (key === 'agency') { setEmail('saurav@brightads.in'); setPassword('demo1234'); }
-    else { setEmail(''); setPassword(''); }
   };
 
   return (
@@ -96,7 +88,7 @@ export default function LoginPage() {
                   <button
                     key={r.key}
                     type="button"
-                    onClick={() => prefill(r.key)}
+                    onClick={() => setSelected(r.key)}
                     className={`flex items-center gap-3 border rounded-lg p-3 text-left transition hover:border-red-400 ${active ? 'border-red-600 ring-2 ring-red-100 bg-red-50/40' : 'border-slate-200'}`}
                   >
                     <div className={`h-9 w-9 rounded-md flex items-center justify-center border ${r.color}`}>
@@ -129,12 +121,6 @@ export default function LoginPage() {
               {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Signing in...</> : <>Sign in <ArrowRight className="h-4 w-4 ml-1" /></>}
             </Button>
           </form>
-
-          <Card className="mt-6 p-3 bg-slate-50 border-dashed">
-            <div className="text-xs text-slate-600">
-              <span className="font-semibold text-slate-800">Demo mode:</span> Click a role to auto-fill and press Sign in. Field Executive doesn't need login.
-            </div>
-          </Card>
         </div>
       </div>
     </div>
