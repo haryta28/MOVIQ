@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr
 from core.auth import get_current_user
 from core.db import db
 from core.helpers import _clean, _clean_many
+from core.mail import send_invite_email
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -118,6 +119,8 @@ async def create_user(body: UserCreate, user: Dict = Depends(get_current_user)):
             "campaigns": 0
         }
         await db.supervisors.insert_one(doc)
+        if body.email:
+            await send_invite_email(body.name, body.email, role)
         return _clean(doc)
         
     elif role in ("admin", "agency"):
@@ -131,6 +134,8 @@ async def create_user(body: UserCreate, user: Dict = Depends(get_current_user)):
         if role == "agency":
             doc["agencyId"] = body.agencyId
         await db.users.insert_one(doc)
+        if body.email:
+            await send_invite_email(body.name, body.email, role)
         return _clean(doc)
         
     raise HTTPException(status_code=400, detail="Invalid role specified")
