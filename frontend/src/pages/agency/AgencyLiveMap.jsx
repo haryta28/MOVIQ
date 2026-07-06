@@ -72,7 +72,8 @@ export default function AgencyLiveMap() {
         mapRef.current = null;
       }
     };
-  }, [tasks.length > 0]); // Reinitialize if task count changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks.length]); // Reinitialize if task count changes
 
   // Update Markers
   useEffect(() => {
