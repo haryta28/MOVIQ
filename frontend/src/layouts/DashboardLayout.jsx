@@ -32,7 +32,7 @@ function DashboardLayout({ nav, subtitle, searchPlaceholder, sidebarExtras }) {
   return (
     <div className="min-h-screen flex bg-slate-50">
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside className="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col">
+      <aside className="w-64 h-screen sticky top-0 shrink-0 bg-white border-r border-slate-200 flex flex-col">
         {/* Logo */}
         <div className="h-16 flex items-center gap-2 px-5 border-b border-slate-200">
           <img src={MOVIQ_LOGO} alt={MOVIQ_NAME} className="h-9 w-9 object-contain" />
