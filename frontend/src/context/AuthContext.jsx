@@ -63,6 +63,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const acceptInvite = async (email, password) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/auth/setup-password', { email, password });
+      localStorage.setItem('moviq_token', data.token);
+      localStorage.setItem('moviq_user', JSON.stringify(data.user));
+      setUser(data.user);
+      return data.user;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('moviq_token');
@@ -70,7 +83,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, acceptInvite }}>
       {children}
     </AuthContext.Provider>
   );

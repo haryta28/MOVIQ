@@ -80,7 +80,7 @@ async def send_invite_email(name: str, email: str, role: str):
           <p>You have been invited to join the <strong>MOVIQ Field Operations Platform</strong> as a <strong>{role_label}</strong>.</p>
           <p>You can log in to your account using your email: <strong>{email}</strong></p>
           <div style="margin: 24px 0; text-align: center;">
-            <a href="https://moviq-bwz.vercel.app" style="background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Access Moviq Dashboard</a>
+            <a href="https://moviq-bwz.vercel.app/accept-invite?email={email}" style="background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Access Moviq Dashboard</a>
           </div>
           <p style="font-size: 12px; color: #64748b; margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
             This is an automated invitation. If you did not expect this, please ignore this email.

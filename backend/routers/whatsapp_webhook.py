@@ -60,6 +60,23 @@ async def receive_webhook(request: Request):
 
         mark_read(msg_id)
 
+        # 🔐 Verify that the sender's phone is registered as a Field Executive
+        clean_phone = "".join(filter(str.isdigit, phone))
+        authorized = False
+        async for fe in db.field_executives.find():
+            fe_phone = "".join(filter(str.isdigit, fe.get("phone", "")))
+            if fe_phone and (fe_phone in clean_phone or clean_phone in fe_phone):
+                authorized = True
+                break
+                
+        if not authorized:
+            send_text(phone, 
+                "❌ *Access Denied.*\n\n"
+                f"Your phone number ({phone}) is not registered on the MOVIQ platform.\n\n"
+                "Please contact your agency manager or supervisor to onboard your phone number."
+            )
+            return {"status": "unauthorized"}
+
         state = await db.whatsapp_sessions.find_one({"phone": phone}) or {"phone": phone, "step": "greet"}
         step  = state.get("step", "greet")
 

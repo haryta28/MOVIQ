@@ -38,6 +38,7 @@ const WhatsAppBot   = lazy(() => import('./pages/whatsapp/WhatsAppBot'));
 
 // ── Lazy-loaded pages — Field capture PWA (public, mobile) ───────────────────
 const CaptureProof  = lazy(() => import('./pages/capture/CaptureProof'));
+const AcceptInvite  = lazy(() => import('./pages/AcceptInvite'));
 
 // ── Role guard ────────────────────────────────────────────────────────────────
 const RequireRole = ({ role, children }) => {
@@ -67,6 +68,7 @@ function App() {
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/accept-invite" element={<AcceptInvite />} />
 
               {/* ── Admin portal ── */}
               <Route path="/admin" element={<RequireRole role="admin"><AdminLayout /></RequireRole>}>
