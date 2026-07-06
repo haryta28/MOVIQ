@@ -47,6 +47,15 @@ const RequireRole = ({ role, children }) => {
   return children;
 };
 
+// ── Root redirect ─────────────────────────────────────────────────────────────
+const RootRedirect = () => {
+  const { user } = useAuth();
+  if (user) {
+    return <Navigate to={user.role === 'admin' ? '/admin' : '/agency'} replace />;
+  }
+  return <Navigate to="/login" replace />;
+};
+
 // ── App ───────────────────────────────────────────────────────────────────────
 function App() {
   return (
@@ -56,7 +65,7 @@ function App() {
           {/* Single Suspense boundary — shows PageLoader skeleton during any lazy load */}
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<LoginPage />} />
 
               {/* ── Admin portal ── */}
