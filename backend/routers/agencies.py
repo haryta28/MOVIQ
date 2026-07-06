@@ -1,7 +1,7 @@
 """Agency CRUD endpoints."""
 import uuid
 from datetime import datetime, timezone
-from typing import Dict
+from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
@@ -31,6 +31,16 @@ async def list_agencies(user: Dict = Depends(get_current_user)):
     return [_clean(doc)] if doc else []
 
 
+class AgencyUpdate(BaseModel):
+    name: Optional[str] = None
+    head: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    plan: Optional[str] = None
+    status: Optional[str] = None
+
+
 @router.post("")
 async def create_agency(body: AgencyCreate, _: Dict = Depends(require_admin)):
     new = {
@@ -57,3 +67,26 @@ async def get_agency(aid: str, _: Dict = Depends(get_current_user)):
     if not doc:
         raise HTTPException(status_code=404, detail="Agency not found")
     return _clean(doc)
+
+
+@router.patch("/{aid}")
+async def update_agency(aid: str, body: AgencyUpdate, _: Dict = Depends(require_admin)):
+    doc = await db.agencies.find_one({"id": aid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Agency not found")
+    
+    update_data = {k: v for k, v in body.dict().items() if v is not None}
+    if update_data:
+        await db.agencies.update_one({"id": aid}, {"$set": update_data})
+        
+    updated = await db.agencies.find_one({"id": aid})
+    return _clean(updated)
+
+
+@router.delete("/{aid}")
+async def delete_agency(aid: str, _: Dict = Depends(require_admin)):
+    doc = await db.agencies.find_one({"id": aid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Agency not found")
+    await db.agencies.delete_one({"id": aid})
+    return {"status": "ok", "message": f"Agency {aid} deleted"}

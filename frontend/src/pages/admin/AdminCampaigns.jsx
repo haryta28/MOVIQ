@@ -15,9 +15,6 @@ const BLANK_FORM = {
   totalTasks: '', budget: '', startDate: '', endDate: '',
 };
 
-// Field MUST live at module scope — defining it inside a component causes
-// React to treat it as a new component on every render, unmounting the
-// input and losing focus after each keypress.
 function Field({ label, name, type = 'text', placeholder = '', value, onChange, error }) {
   return (
     <div>
@@ -145,6 +142,92 @@ function NewCampaignModal({ open, onClose, onCreated }) {
   );
 }
 
+// ── Campaign Details Modal ──────────────────────────────────────────────────────
+function CampaignDetailsModal({ open, campaign, onClose }) {
+  if (!open || !campaign) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-bold text-xs">
+              {(campaign.brand || '').slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">{campaign.title}</h2>
+              <p className="text-xs text-slate-500">{campaign.brand} · {campaign.agency}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 transition"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="block text-xs font-medium text-slate-400 uppercase tracking-wider">City</span>
+              <span className="font-medium text-slate-800">{campaign.city}</span>
+            </div>
+            <div>
+              <span className="block text-xs font-medium text-slate-400 uppercase tracking-wider">Media Type</span>
+              <span className="font-medium text-slate-800">{campaign.mediaType}</span>
+            </div>
+            <div>
+              <span className="block text-xs font-medium text-slate-400 uppercase tracking-wider">Budget</span>
+              <span className="font-semibold text-slate-900">₹ {Number(campaign.budget || 0).toLocaleString('en-IN')}</span>
+            </div>
+            <div>
+              <span className="block text-xs font-medium text-slate-400 uppercase tracking-wider">Status</span>
+              <div className="mt-0.5"><StatusBadge status={campaign.status} /></div>
+            </div>
+            <div>
+              <span className="block text-xs font-medium text-slate-400 uppercase tracking-wider">Start Date</span>
+              <span className="font-medium text-slate-800">{campaign.startDate || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="block text-xs font-medium text-slate-400 uppercase tracking-wider">End Date</span>
+              <span className="font-medium text-slate-800">{campaign.endDate || 'N/A'}</span>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 space-y-2">
+            <div className="flex justify-between text-xs font-medium text-slate-500">
+              <span>Progress</span>
+              <span>{campaign.completed || 0} / {campaign.totalTasks || 0} Tasks ({Math.round(((campaign.completed || 0) / (campaign.totalTasks || 1)) * 100)}%)</span>
+            </div>
+            <ProgressBar
+              value={campaign.completed || 0}
+              max={campaign.totalTasks || 1}
+              color={campaign.status === 'completed' ? 'bg-emerald-500' : 'bg-red-600'}
+            />
+          </div>
+
+          {campaign.flagged > 0 && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-between text-xs text-rose-700">
+              <span className="font-medium">⚠️ Security Notice</span>
+              <span className="font-semibold">{campaign.flagged} flagged submissions pending review</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+          <Button className="bg-slate-900 hover:bg-slate-800 text-white" onClick={onClose}>
+            Close Details
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function AdminCampaigns() {
   const { data: fetchedCampaigns = [], refetch } = useApi('/campaigns');
@@ -154,6 +237,7 @@ export default function AdminCampaigns() {
   const [q, setQ]           = useState('');
   const [status, setStatus] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
 
   const filtered = campaigns.filter(c =>
     (status === 'all' || c.status === status) &&
@@ -165,7 +249,6 @@ export default function AdminCampaigns() {
   );
 
   const handleCreated = (newCampaign) => {
-    // Optimistically prepend the new campaign, then trigger a background refetch
     setLocalCampaigns(prev => [newCampaign, ...(prev ?? fetchedCampaigns)]);
     refetch();
   };
@@ -180,14 +263,6 @@ export default function AdminCampaigns() {
             <Button variant="outline">
               <Download className="h-4 w-4 mr-1" /> Export CSV
             </Button>
-            {/* New Campaign button — temporarily disabled
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              onClick={() => setShowModal(true)}
-            >
-              <Plus className="h-4 w-4 mr-1" /> New Campaign
-            </Button>
-            */}
           </div>
         }
       />
@@ -244,7 +319,7 @@ export default function AdminCampaigns() {
                 <div className="text-xs text-slate-500">
                   {c.flagged > 0 ? <span className="text-rose-600 font-medium">{c.flagged} flagged</span> : 'No flags'}
                 </div>
-                <Button size="sm" variant="ghost" className="text-red-600">
+                <Button size="sm" variant="ghost" className="text-red-600" onClick={() => setSelectedCampaign(c)}>
                   <Eye className="h-3.5 w-3.5 mr-1" /> View
                 </Button>
               </div>
@@ -263,6 +338,12 @@ export default function AdminCampaigns() {
         open={showModal}
         onClose={() => setShowModal(false)}
         onCreated={handleCreated}
+      />
+
+      <CampaignDetailsModal
+        open={!!selectedCampaign}
+        campaign={selectedCampaign}
+        onClose={() => setSelectedCampaign(null)}
       />
     </div>
   );
