@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -14,6 +15,7 @@ import useApi from '../../hooks/useApi';
 
 
 export default function AdminAgencies() {
+  const navigate = useNavigate();
   const { data: fetchedAgencies = [], refetch } = useApi('/agencies');
   const [agencies, setAgencies] = useState(null); // null = use fetched, array = local override
   const displayed = agencies ?? fetchedAgencies;
@@ -142,7 +144,15 @@ export default function AdminAgencies() {
                   <td className="py-3 px-3 text-slate-700">{a.head}</td>
                   <td className="py-3 px-3 text-slate-700"><span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3 text-slate-400" />{a.city}</span></td>
                   <td className="py-3 px-3"><span className="inline-flex text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">{a.plan}</span></td>
-                  <td className="py-3 px-3 text-slate-700"><span className="inline-flex items-center gap-1"><Megaphone className="h-3 w-3 text-slate-400" />{a.campaigns}</span></td>
+                  <td className="py-3 px-3">
+                    <button 
+                      onClick={() => navigate('/admin/campaigns', { state: { filterAgency: a.name } })}
+                      className="inline-flex items-center gap-1 text-red-600 hover:underline font-semibold hover:text-red-700 transition"
+                    >
+                      <Megaphone className="h-3.5 w-3.5" />
+                      {a.campaigns}
+                    </button>
+                  </td>
                   <td className="py-3 px-3 text-slate-700"><span className="inline-flex items-center gap-1"><Users className="h-3 w-3 text-slate-400" />{a.activeUsers}</span></td>
                   <td className="py-3 px-3 font-semibold text-slate-900">₹ {((a.revenue||0)/100000).toFixed(1)}L</td>
                   <td className="py-3 px-3"><StatusBadge status={a.status} /></td>

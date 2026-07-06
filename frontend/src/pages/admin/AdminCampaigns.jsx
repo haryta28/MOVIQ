@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -234,13 +235,25 @@ export default function AdminCampaigns() {
   const [localCampaigns, setLocalCampaigns] = useState(null);
   const campaigns = localCampaigns ?? fetchedCampaigns;
 
+  const location = useLocation();
   const [q, setQ]           = useState('');
   const [status, setStatus] = useState('all');
+  const [selectedAgency, setSelectedAgency] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
 
+  // Set the agency filter if passed via react-router location state
+  useEffect(() => {
+    if (location.state?.filterAgency) {
+      setSelectedAgency(location.state.filterAgency);
+    }
+  }, [location.state]);
+
+  const agenciesList = Array.from(new Set(campaigns.map(c => c.agency).filter(Boolean)));
+
   const filtered = campaigns.filter(c =>
     (status === 'all' || c.status === status) &&
+    (selectedAgency === 'all' || c.agency === selectedAgency) &&
     (
       (c.title  || '').toLowerCase().includes(q.toLowerCase()) ||
       (c.brand  || '').toLowerCase().includes(q.toLowerCase()) ||
@@ -278,6 +291,15 @@ export default function AdminCampaigns() {
               className="pl-9"
             />
           </div>
+          <Select value={selectedAgency} onValueChange={setSelectedAgency}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="All Agencies" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All agencies</SelectItem>
+              {agenciesList.map(a => (
+                <SelectItem key={a} value={a}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
