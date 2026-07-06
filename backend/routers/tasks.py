@@ -35,9 +35,18 @@ async def list_tasks(
     if city:
         q["city"] = city
     limit = min(max(limit, 1), 500)   # Clamp: 1 ≤ limit ≤ 500
-    return _clean_many(
-        await db.tasks.find(q).skip(skip).limit(limit).to_list(limit)
-    )
+    tasks_raw = await db.tasks.find(q).skip(skip).limit(limit).to_list(limit)
+    
+    # Hydrate campaign title for each task dynamically
+    campaign_ids = list(set(t.get("campaignId") for t in tasks_raw if t.get("campaignId")))
+    campaigns = await db.campaigns.find({"id": {"$in": campaign_ids}}).to_list(100)
+    campaign_map = {c["id"]: c["title"] for c in campaigns}
+    
+    for t in tasks_raw:
+        cid = t.get("campaignId")
+        t["campaignTitle"] = campaign_map.get(cid, "Unknown Campaign")
+        
+    return _clean_many(tasks_raw)
 
 
 @router.patch("/{tid}")

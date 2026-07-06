@@ -132,7 +132,9 @@ export default function AgencyCampaigns() {
                     {(c.brand||'').slice(0,2).toUpperCase()}
                   </div>
                   <div>
-                    <div className="font-semibold text-slate-900">{c.title}</div>
+                    <Link to={`/agency/campaigns/${c.id}`} className="font-semibold text-slate-900 hover:text-red-600 transition">
+                      {c.title}
+                    </Link>
                     <div className="text-xs text-slate-500">{c.brand}</div>
                   </div>
                 </div>

@@ -61,7 +61,7 @@ export default function AgencyTasks() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-100">
-                <th className="py-3 px-3 font-medium">Task</th>
+                <th className="py-3 px-3 font-medium">Campaign</th>
                 <th className="py-3 px-3 font-medium">Unit</th>
                 <th className="py-3 px-3 font-medium">City</th>
                 <th className="py-3 px-3 font-medium">Media</th>
@@ -74,7 +74,7 @@ export default function AgencyTasks() {
             <tbody>
               {filtered.slice(0, 30).map(t => (
                 <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(t)}>
-                  <td className="py-3 px-3 font-mono text-xs text-slate-700">{t.taskCode}</td>
+                  <td className="py-3 px-3 font-medium text-slate-900">{t.campaignTitle || 'Unknown Campaign'}</td>
                   <td className="py-3 px-3 font-medium text-slate-900">{t.unitCode}</td>
                   <td className="py-3 px-3"><span className="inline-flex items-center gap-1 text-slate-700"><MapPin className="h-3 w-3 text-slate-400" />{t.city}</span></td>
                   <td className="py-3 px-3 text-slate-700">{t.mediaType}</td>
@@ -88,13 +88,14 @@ export default function AgencyTasks() {
           </table>
         </div>
       </Card>
-
+ 
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Task {selected?.taskCode}</DialogTitle></DialogHeader>
           {selected && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="col-span-2"><div className="text-xs text-slate-500">Campaign</div><div className="font-semibold text-slate-950">{selected.campaignTitle || 'Unknown Campaign'}</div></div>
                 <div><div className="text-xs text-slate-500">Unit</div><div className="font-medium">{selected.unitCode}</div></div>
                 <div><div className="text-xs text-slate-500">Media</div><div className="font-medium">{selected.mediaType}</div></div>
                 <div><div className="text-xs text-slate-500">City</div><div className="font-medium">{selected.city}</div></div>
