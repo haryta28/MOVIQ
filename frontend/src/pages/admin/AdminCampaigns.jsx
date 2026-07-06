@@ -166,6 +166,11 @@ function EditCampaignModal({ open, campaign, onClose, onUpdated, agencies = [] }
 
   useEffect(() => {
     if (campaign) {
+      let matchedAgencyId = campaign.agencyId || '';
+      if (!matchedAgencyId && campaign.agency && agencies.length) {
+        const found = agencies.find(a => a.name.toLowerCase() === campaign.agency.toLowerCase());
+        if (found) matchedAgencyId = found.id;
+      }
       setForm({
         title: campaign.title || '',
         brand: campaign.brand || '',
@@ -177,10 +182,10 @@ function EditCampaignModal({ open, campaign, onClose, onUpdated, agencies = [] }
         startDate: campaign.startDate || '',
         endDate: campaign.endDate || '',
         status: campaign.status || 'ongoing',
-        agencyId: campaign.agencyId || '',
+        agencyId: matchedAgencyId,
       });
     }
-  }, [campaign]);
+  }, [campaign, agencies]);
 
   if (!open) return null;
 
@@ -192,6 +197,7 @@ function EditCampaignModal({ open, campaign, onClose, onUpdated, agencies = [] }
     if (!form.brand.trim())     e.brand     = 'Brand is required';
     if (!form.mediaType.trim()) e.mediaType = 'Media type is required';
     if (!form.city.trim())      e.city      = 'City is required';
+    if (agencies.length && !form.agencyId) e.agencyId = 'Agency is required';
     if (!form.totalTasks || isNaN(form.totalTasks)) e.totalTasks = 'Enter a valid number';
     if (!form.budget     || isNaN(form.budget))     e.budget     = 'Enter a valid number';
     return e;
@@ -287,13 +293,14 @@ function EditCampaignModal({ open, campaign, onClose, onUpdated, agencies = [] }
               <div>
                 <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Agency *</Label>
                 <Select value={form.agencyId} onValueChange={v => setForm(f => ({ ...f, agencyId: v }))}>
-                  <SelectTrigger className="mt-1 bg-slate-50 border-slate-200"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 bg-slate-50 border-slate-200"><SelectValue placeholder="Select Agency" /></SelectTrigger>
                   <SelectContent>
                     {agencies.map(a => (
                       <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.agencyId && <p className="text-xs text-rose-500 mt-1">{errors.agencyId}</p>}
               </div>
             </div>
           )}
