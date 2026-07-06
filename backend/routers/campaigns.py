@@ -27,6 +27,7 @@ class CampaignCreate(BaseModel):
     budget: int = 0
     startDate: str = ""
     endDate: str = ""
+    agencyId: Optional[str] = None
 
 
 @router.get("")
@@ -98,15 +99,45 @@ async def get_campaign(cid: str, user: Dict = Depends(get_current_user)):
     }
 
 
+class CampaignUpdate(BaseModel):
+    title: Optional[str] = None
+    brand: Optional[str] = None
+    brandId: Optional[str] = None
+    mediaType: Optional[str] = None
+    city: Optional[str] = None
+    totalTasks: Optional[int] = None
+    budget: Optional[int] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
+    status: Optional[str] = None
+
+
 @router.post("")
 async def create_campaign(body: CampaignCreate, user: Dict = Depends(get_current_user)):
-    if user["role"] != "agency":
-        raise HTTPException(status_code=403, detail="Only agency users can create campaigns")
+    # Both admin and agency users can create campaigns
+    if user["role"] not in ("admin", "agency"):
+        raise HTTPException(status_code=403, detail="Unauthorized role")
+        
+    agency_id = None
+    agency_name = ""
+    
+    if user["role"] == "agency":
+        agency_id = user.get("agencyId")
+        agency_name = user.get("agencyName", "")
+    elif user["role"] == "admin":
+        if not body.agencyId:
+            raise HTTPException(status_code=400, detail="agencyId is required for admin when creating a campaign")
+        agency = await db.agencies.find_one({"id": body.agencyId})
+        if not agency:
+            raise HTTPException(status_code=400, detail="Invalid agencyId")
+        agency_id = body.agencyId
+        agency_name = agency.get("name", "")
+
     new = {
         "id":       f"c{uuid.uuid4().hex[:8]}",
         **body.dict(),
-        "agency":   user.get("agencyName", ""),
-        "agencyId": user.get("agencyId"),
+        "agency":   agency_name,
+        "agencyId": agency_id,
         "completed": 0,
         "flagged":   0,
         "status":    "ongoing",
@@ -119,6 +150,42 @@ async def create_campaign(body: CampaignCreate, user: Dict = Depends(get_current
         "success",
     )
     return _clean(new)
+
+
+@router.patch("/{cid}")
+async def update_campaign(cid: str, body: CampaignUpdate, user: Dict = Depends(get_current_user)):
+    doc = await db.campaigns.find_one({"id": cid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+        
+    if user["role"] == "agency" and doc.get("agencyId") != user.get("agencyId"):
+        raise HTTPException(status_code=403, detail="Not your campaign")
+        
+    if user["role"] not in ("admin", "agency"):
+        raise HTTPException(status_code=403, detail="Unauthorized role")
+        
+    update_data = {k: v for k, v in body.dict().items() if v is not None}
+    if update_data:
+        await db.campaigns.update_one({"id": cid}, {"$set": update_data})
+        
+    updated = await db.campaigns.find_one({"id": cid})
+    return _clean(updated)
+
+
+@router.delete("/{cid}")
+async def delete_campaign(cid: str, user: Dict = Depends(get_current_user)):
+    doc = await db.campaigns.find_one({"id": cid})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+        
+    if user["role"] == "agency" and doc.get("agencyId") != user.get("agencyId"):
+        raise HTTPException(status_code=403, detail="Not your campaign")
+        
+    if user["role"] not in ("admin", "agency"):
+        raise HTTPException(status_code=403, detail="Unauthorized role")
+        
+    await db.campaigns.delete_one({"id": cid})
+    return {"status": "ok", "message": f"Campaign {cid} deleted"}
 
 
 async def _campaign_with_tasks(cid: str, user: Dict[str, Any]):

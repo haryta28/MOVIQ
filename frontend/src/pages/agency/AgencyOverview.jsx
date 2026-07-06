@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { KpiCard, StatusBadge, PageHeader, ProgressBar, MiniBarChart } from '../../components/Shared';
-import { Megaphone, ListChecks, Users, Camera, Plus, ArrowUpRight, MapPin, Clock } from 'lucide-react';
+import { Megaphone, ListChecks, Users, Camera, ArrowUpRight, MapPin, Clock } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyOverview() {
@@ -17,6 +18,8 @@ export default function AgencyOverview() {
     analytics = { monthlyStats: [] }
   ] = results;
 
+  const [selectedTask, setSelectedTask] = useState(null);
+
   const completed = campaigns.reduce((s, c) => s + (c.completed || 0), 0);
   const total = campaigns.reduce((s, c) => s + (c.totalTasks || 0), 0);
   const active = campaigns.filter(c => c.status === 'ongoing').length;
@@ -27,11 +30,12 @@ export default function AgencyOverview() {
       <PageHeader
         title={`Good morning, ${(user?.name || 'there').split(' ')[0]}`}
         description="Here's what's happening across your campaigns today."
-        actions={<Link to="/agency/campaigns"><Button className="bg-red-600 hover:bg-red-700 text-white"><Plus className="h-4 w-4 mr-1" /> New campaign</Button></Link>}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Active campaigns" value={active} icon={Megaphone} delta={8} accent="indigo" />
+        <Link to="/agency/campaigns" className="block transition hover:opacity-95">
+          <KpiCard label="Active campaigns" value={active} icon={Megaphone} delta={8} accent="indigo" />
+        </Link>
         <KpiCard label="Tasks completed" value={`${completed}/${total}`} icon={ListChecks} delta={15} accent="blue" />
         <KpiCard label="Field executives" value={team.length} icon={Users} delta={4} accent="emerald" />
         <KpiCard label="Photos verified today" value="312" icon={Camera} delta={22} accent="violet" />
@@ -72,7 +76,11 @@ export default function AgencyOverview() {
           </div>
           <div className="space-y-3">
             {recentTasks.map(t => (
-              <div key={t.id} className="flex items-start gap-3 p-2 rounded-md hover:bg-slate-50">
+              <button
+                key={t.id}
+                onClick={() => setSelectedTask(t)}
+                className="w-full flex items-start gap-3 p-2 rounded-md hover:bg-slate-50 text-left transition border border-transparent hover:border-slate-100"
+              >
                 <div className="h-8 w-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
                   <MapPin className="h-4 w-4 text-slate-500" />
                 </div>
@@ -84,7 +92,7 @@ export default function AgencyOverview() {
                   <div className="text-xs text-slate-500 mt-0.5 truncate">{t.address}</div>
                   <div className="text-xs text-slate-400 mt-0.5">{t.assignedTo} · {t.submittedAt || 'awaiting'}</div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </Card>
@@ -99,6 +107,39 @@ export default function AgencyOverview() {
         </div>
         {analytics.monthlyStats.length > 0 && <MiniBarChart data={analytics.monthlyStats} valueKey="tasks" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />}
       </Card>
+
+      {/* ── Task Details Modal ── */}
+      <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Task {selectedTask?.taskCode}</DialogTitle></DialogHeader>
+          {selectedTask && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><div className="text-xs text-slate-500">Unit</div><div className="font-medium">{selectedTask.unitCode}</div></div>
+                <div><div className="text-xs text-slate-500">Media</div><div className="font-medium">{selectedTask.mediaType}</div></div>
+                <div><div className="text-xs text-slate-500">City</div><div className="font-medium">{selectedTask.city}</div></div>
+                <div><div className="text-xs text-slate-500">Status</div><StatusBadge status={selectedTask.status} /></div>
+                <div className="col-span-2"><div className="text-xs text-slate-500">Address</div><div className="font-medium">{selectedTask.address}</div></div>
+                <div><div className="text-xs text-slate-500">GPS</div><div className="font-mono text-xs">{selectedTask.lat}, {selectedTask.lng}</div></div>
+                <div><div className="text-xs text-slate-500">Executive</div><div className="font-medium">{selectedTask.assignedTo}</div></div>
+              </div>
+              {selectedTask.photos > 0 && (
+                <div>
+                  <div className="text-xs text-slate-500 mb-2">Media proofs ({selectedTask.photos})</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Array.from({ length: selectedTask.photos }).map((_, i) => (
+                      <div key={i} className="aspect-square rounded-md bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-400 text-xs">Photo {i+1}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {selectedTask.flagReason && (
+                <div className="p-3 rounded-lg bg-rose-50 border border-rose-100 text-sm text-rose-700"><span className="font-semibold">Flagged:</span> {selectedTask.flagReason}</div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -28,8 +28,12 @@ export default function AdminOverview() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Active Agencies" value={kpis.activeAgencies || 0} icon={Building2} delta={12} accent="blue" />
-        <KpiCard label="Live Campaigns" value={kpis.liveCampaigns || 0} icon={Megaphone} delta={8} accent="indigo" />
+        <Link to="/admin/agencies" className="block transition hover:opacity-95">
+          <KpiCard label="Active Agencies" value={kpis.activeAgencies || 0} icon={Building2} delta={12} accent="blue" />
+        </Link>
+        <Link to="/admin/campaigns" className="block transition hover:opacity-95">
+          <KpiCard label="Live Campaigns" value={kpis.liveCampaigns || 0} icon={Megaphone} delta={8} accent="indigo" />
+        </Link>
         <KpiCard label="Tasks Executed" value={(kpis.tasksExecuted || 0).toLocaleString()} icon={ListChecks} delta={22} accent="emerald" />
         <KpiCard label="MRR (₹)" value={`₹ ${((kpis.totalRevenue || 0)/100000).toFixed(1)}L`} icon={IndianRupee} delta={16} accent="violet" />
       </div>
