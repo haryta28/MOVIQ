@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 
-from core.auth import get_current_user
+from core.auth import get_current_user, pwd_ctx
 from core.db import db
 from core.helpers import _clean, _clean_many
 from core.mail import send_invite_email
@@ -127,9 +127,10 @@ async def create_user(body: UserCreate, user: Dict = Depends(get_current_user)):
         doc = {
             "id": new_id,
             "name": body.name,
-            "email": body.email,
+            "email": body.email.lower(),
             "role": role,
-            "status": "active"
+            "status": "active",
+            "password_hash": pwd_ctx.hash("demo1234"),
         }
         if role == "agency":
             doc["agencyId"] = body.agencyId
