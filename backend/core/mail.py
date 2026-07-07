@@ -93,3 +93,26 @@ async def send_invite_email(name: str, email: str, role: str):
 
 async def send_invite_email_task(to_email: str, subject: str, html_content: str):
     await send_email(to_email, subject, html_content)
+
+
+async def send_password_changed_email(name: str, email: str):
+    subject = "Security Alert: Your MOVIQ password has been changed"
+    html_content = f"""
+    <html>
+      <body style="font-family: sans-serif; color: #1e293b; line-height: 1.6; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <h2 style="color: #ef4444; margin-top: 0;">Password Changed</h2>
+          <p>Hi <strong>{name}</strong>,</p>
+          <p>This email is to confirm that the password for your <strong>MOVIQ Field Operations Platform</strong> account (<strong>{email}</strong>) has been successfully changed.</p>
+          <p>If you did this, no further action is required.</p>
+          <p style="color: #ef4444; font-weight: bold;">
+            ⚠️ If you did NOT authorize this change, please contact your Platform Admin immediately to secure your account.
+          </p>
+          <p style="font-size: 12px; color: #64748b; margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+            This is an automated security notification.
+          </p>
+        </div>
+      </body>
+    </html>
+    """
+    await send_email(email, subject, html_content)

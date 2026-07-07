@@ -39,6 +39,7 @@ const WhatsAppBot   = lazy(() => import('./pages/whatsapp/WhatsAppBot'));
 // ── Lazy-loaded pages — Field capture PWA (public, mobile) ───────────────────
 const CaptureProof  = lazy(() => import('./pages/capture/CaptureProof'));
 const AcceptInvite  = lazy(() => import('./pages/AcceptInvite'));
+const UserProfile   = lazy(() => import('./pages/UserProfile'));
 
 // ── Role guard ────────────────────────────────────────────────────────────────
 const RequireRole = ({ role, children }) => {
@@ -79,8 +80,9 @@ function App() {
                 <Route path="fraud"       element={<AdminFraud />} />
                 <Route path="analytics"   element={<AdminAnalytics />} />
                 <Route path="media-types" element={<AdminMediaTypes />} />
+                <Route path="profile"     element={<UserProfile />} />
               </Route>
-
+ 
               {/* ── Agency portal ── */}
               <Route path="/agency" element={<RequireRole role="agency"><AgencyLayout /></RequireRole>}>
                 <Route index                   element={<AgencyOverview />} />
@@ -91,6 +93,7 @@ function App() {
                 <Route path="proofs"           element={<AgencyProofs />} />
                 <Route path="reports"          element={<AgencyReports />} />
                 <Route path="live-map"         element={<AgencyLiveMap />} />
+                <Route path="profile"          element={<UserProfile />} />
               </Route>
 
               {/* ── WhatsApp Bot — public ── */}

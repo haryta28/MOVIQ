@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { NavLink, useNavigate, Outlet } from 'react-router-dom';
+import { Link, NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { LogOut, Bell, Search } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
@@ -74,17 +74,19 @@ function DashboardLayout({ nav, subtitle, searchPlaceholder, sidebarExtras }) {
 
         {/* User profile + logout */}
         <div className="border-t border-slate-200 p-3">
-          <div className="flex items-center gap-3 rounded-md p-2">
-            <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-red-600 text-white text-xs">
-                {user?.avatar || 'A'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{user?.name}</div>
-              <div className="text-xs text-slate-500 truncate">{user?.email}</div>
-            </div>
-            <Button size="icon" variant="ghost" onClick={handleLogout} title="Logout">
+          <div className="flex items-center gap-3 rounded-md p-1">
+            <Link to={user?.role === 'admin' ? '/admin/profile' : '/agency/profile'} className="flex items-center gap-3 flex-1 min-w-0 hover:bg-slate-50 p-1.5 rounded-lg transition cursor-pointer">
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarFallback className="bg-red-600 text-white text-xs">
+                  {user?.avatar || (user?.name || 'A').slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0 text-left">
+                <div className="text-sm font-semibold truncate text-slate-800">{user?.name}</div>
+                <div className="text-xs text-slate-500 truncate">{user?.email}</div>
+              </div>
+            </Link>
+            <Button size="icon" variant="ghost" onClick={handleLogout} title="Logout" className="text-slate-400 hover:text-red-600 shrink-0">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>

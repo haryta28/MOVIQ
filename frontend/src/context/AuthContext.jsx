@@ -76,6 +76,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const { data } = await api.get('/auth/me');
+      localStorage.setItem('moviq_user', JSON.stringify(data));
+      setUser(data);
+      return data;
+    } catch (_) {
+      // Ignore
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('moviq_token');
@@ -83,7 +94,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, acceptInvite }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, acceptInvite, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
