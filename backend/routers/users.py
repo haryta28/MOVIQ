@@ -49,10 +49,16 @@ async def list_users(role: Optional[str] = None, user: Dict = Depends(get_curren
                 for a in agencies
             ]
         if role == "admin":
+            admins = await db.users.find({"role": "admin"}).to_list(100)
             return [
-                {"id": "ad1", "name": "Deepak Bansal", "email": "admin@moviq.in",    "role": "Super Admin", "status": "active"},
-                {"id": "ad2", "name": "Anjali Sharma",  "email": "anjali@moviq.in",  "role": "Operations",  "status": "active"},
-                {"id": "ad3", "name": "Rohan Iyer",     "email": "rohan@moviq.in",   "role": "Support",     "status": "active"},
+                {
+                    "id": a["id"],
+                    "name": a["name"],
+                    "email": a["email"],
+                    "role": a.get("subRole", "Super Admin"),
+                    "status": a.get("status", "active")
+                }
+                for a in admins
             ]
         # Default - all users (excluding password hashes)
         return _clean_many(await db.users.find({}, {"password_hash": 0}).to_list(1000))
