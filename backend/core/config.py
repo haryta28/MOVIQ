@@ -30,8 +30,12 @@ CLOUDINARY_CLOUD_NAME: str = os.environ.get("CLOUDINARY_CLOUD_NAME", "")
 CLOUDINARY_API_KEY: str    = os.environ.get("CLOUDINARY_API_KEY", "")
 CLOUDINARY_API_SECRET: str = os.environ.get("CLOUDINARY_API_SECRET", "")
 
-# ── WhatsApp Cloud API ─────────────────────────────────────────────────────────
+# ── WhatsApp Cloud API & WATI ───────────────────────────────────────────────────
 WHATSAPP_TOKEN: str           = os.environ.get("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_NUMBER_ID: str = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "1250205821505876")
 WHATSAPP_API_URL: str         = f"https://graph.facebook.com/v19.0/{os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '1250205821505876')}/messages"
 WEBHOOK_VERIFY_TOKEN: str     = os.environ.get("WEBHOOK_VERIFY_TOKEN", "moviq_webhook_2024")
+
+WATI_TOKEN: str               = os.environ.get("WATI_TOKEN", "")
+WATI_API_ENDPOINT: str        = os.environ.get("WATI_API_ENDPOINT", "").rstrip("/")
+

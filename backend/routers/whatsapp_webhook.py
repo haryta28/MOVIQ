@@ -47,16 +47,71 @@ async def verify_webhook(request: Request):
 async def receive_webhook(request: Request):
     body = await request.json()
     try:
-        entry   = body["entry"][0]
-        changes = entry["changes"][0]["value"]
-        messages = changes.get("messages", [])
-        if not messages:
-            return {"status": "no_messages"}
+        phone = None
+        msg_id = ""
+        mtype = "text"
+        msg_text = ""
+        loc_data = None
+        media_ref = None
 
-        msg    = messages[0]
-        phone  = msg["from"]
-        msg_id = msg["id"]
-        mtype  = msg.get("type", "text")
+        if "entry" in body:
+            # ── Meta Cloud API Format ──
+            entry = body["entry"][0]
+            changes = entry["changes"][0]["value"]
+            messages = changes.get("messages", [])
+            if not messages:
+                return {"status": "no_messages"}
+
+            msg = messages[0]
+            phone = msg.get("from", "")
+            msg_id = msg.get("id", "")
+            mtype = msg.get("type", "text")
+            if mtype == "text":
+                msg_text = msg.get("text", {}).get("body", "").strip()
+            elif mtype == "interactive":
+                msg_text = (
+                    msg.get("interactive", {}).get("button_reply", {}).get("id", "")
+                    or msg.get("interactive", {}).get("button_reply", {}).get("title", "")
+                )
+                mtype = "text"
+            elif mtype == "location":
+                loc_data = msg.get("location", {})
+            elif mtype == "image":
+                media_ref = msg.get("image", {}).get("id")
+        else:
+            # ── WATI Webhook Format ──
+            phone = str(body.get("waId") or body.get("whatsappNumber") or body.get("from") or body.get("phone") or "")
+            msg_id = str(body.get("id") or body.get("messageId") or uuid.uuid4().hex[:8])
+            raw_type = str(body.get("type") or body.get("eventType") or "text").lower()
+
+            if "location" in body or "latitude" in body or raw_type == "location":
+                mtype = "location"
+                l = body.get("location") if isinstance(body.get("location"), dict) else body
+                loc_data = {
+                    "latitude": float(l.get("latitude") or l.get("lat") or 0),
+                    "longitude": float(l.get("longitude") or l.get("lng") or 0),
+                }
+            elif "media" in body or "mediaUrl" in body or "url" in body or raw_type in ("image", "photo", "media"):
+                mtype = "image"
+                media_ref = (
+                    body.get("mediaUrl")
+                    or body.get("media")
+                    or body.get("url")
+                    or (body.get("image", {}).get("url") if isinstance(body.get("image"), dict) else None)
+                    or (body.get("image", {}).get("id") if isinstance(body.get("image"), dict) else None)
+                )
+            else:
+                mtype = "text"
+                msg_text = (
+                    body.get("text")
+                    or body.get("body")
+                    or body.get("messageText")
+                    or body.get("buttonText")
+                    or ""
+                ).strip()
+
+        if not phone:
+            return {"status": "no_phone"}
 
         mark_read(msg_id)
 
@@ -82,7 +137,7 @@ async def receive_webhook(request: Request):
 
         # ── GREET ─────────────────────────────────────────────────────────────
         if mtype == "text":
-            text = msg.get("text", {}).get("body", "").strip().lower()
+            text = msg_text.lower()
 
             if step == "greet" or text in ("hi", "hello", "hey", "start", "restart"):
                 await _save_state(phone, {"step": "await_vehicle", "photos": [], "gps": None})
@@ -101,11 +156,11 @@ async def receive_webhook(request: Request):
                 )
 
             elif step == "await_driver":
-                await _save_state(phone, {**state, "step": "await_phone", "driver_name": msg["text"]["body"].strip()})
+                await _save_state(phone, {**state, "step": "await_phone", "driver_name": msg_text.strip()})
                 send_text(phone, "📞 Got it! Now share the *driver's phone number*:")
 
             elif step == "await_phone":
-                await _save_state(phone, {**state, "step": "await_location", "driver_phone": msg["text"]["body"].strip()})
+                await _save_state(phone, {**state, "step": "await_location", "driver_phone": msg_text.strip()})
                 send_text(phone,
                     "📍 Almost there! Now please *share your current location*:\n\n"
                     "Tap 📎 Attachment → *Location* in WhatsApp and send it here."
@@ -128,8 +183,8 @@ async def receive_webhook(request: Request):
 
         # ── LOCATION ──────────────────────────────────────────────────────────
         elif mtype == "location" and step == "await_location":
-            loc = msg["location"]
-            gps = {"lat": loc["latitude"], "lng": loc["longitude"]}
+            loc = loc_data or {}
+            gps = {"lat": loc.get("latitude", 0), "lng": loc.get("longitude", 0)}
             await _save_state(phone, {**state, "step": "photo_0", "gps": gps})
             send_text(phone,
                 f"✅ Location captured! (Accuracy ~5m)\n\n"
@@ -140,11 +195,10 @@ async def receive_webhook(request: Request):
         # ── PHOTOS ────────────────────────────────────────────────────────────
         elif mtype == "image" and step in ("photo_0", "photo_1", "photo_2"):
             photo_idx  = int(step[-1])
-            media_id   = msg["image"]["id"]
             caption    = PHOTO_LABELS[photo_idx]
 
-            # Download from WhatsApp + upload to Cloudinary
-            img_bytes  = download_media(media_id)
+            # Download from WhatsApp/WATI + upload to Cloudinary
+            img_bytes  = download_media(media_ref)
             result     = upload_image(img_bytes, folder="moviq/proofs")
 
             photos     = state.get("photos", [])
