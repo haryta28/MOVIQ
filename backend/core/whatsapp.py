@@ -32,11 +32,15 @@ def send_text(to: str, text: str) -> None:
     # 1. Use WATI API if configured
     if WATI_TOKEN and WATI_API_ENDPOINT:
         try:
-            url = f"{WATI_API_ENDPOINT}/api/v1/sendSessionMessage/{clean_to}?messageText={httpx.QueryParams({'t': text})['t']}"
             with httpx.Client(timeout=10) as client:
-                resp = client.post(url, headers=_wati_headers())
+                # Use params= so httpx handles URL encoding of special chars, newlines, emoji
+                resp = client.post(
+                    f"{WATI_API_ENDPOINT}/api/v1/sendSessionMessage/{clean_to}",
+                    headers=_wati_headers(),
+                    params={"messageText": text},
+                )
                 if resp.status_code not in (200, 201):
-                    # Try JSON body post format
+                    # Some WATI versions prefer JSON body — try that as fallback
                     client.post(
                         f"{WATI_API_ENDPOINT}/api/v1/sendSessionMessage/{clean_to}",
                         headers=_wati_headers(),
