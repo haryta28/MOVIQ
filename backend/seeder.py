@@ -45,26 +45,43 @@ async def seed_all() -> None:
             {"$set": {"createdAt": (now - timedelta(hours=1)).isoformat()}},
         )
 
-    # Demo users — development only, never in production
+    # Platform users — admins + agency heads
+    # 3 Admins + 3 Agency heads linked to a1, a2, a3
     if await db.users.count_documents({}) == 0:
-        if ENV == "production":
-            logger.warning(
-                "No users found in production DB. "
-                "Demo accounts are disabled in production — add users directly in MongoDB."
-            )
-        else:
-            demo_users = [
-                {
-                    "id": "u1", "name": "Deepak Bansal", "email": "admin@moviq.in",
-                    "role": "admin", "avatar": "DB",
-                    "password_hash": pwd_ctx.hash("demo1234"),
-                },
-                {
-                    "id": "u2", "name": "Saurav Mehta", "email": "saurav@brightads.in",
-                    "role": "agency", "avatar": "SM",
-                    "agencyId": "a1", "agencyName": "BrightAds Media",
-                    "password_hash": pwd_ctx.hash("demo1234"),
-                },
-            ]
-            await db.users.insert_many(demo_users)
-            logger.info(f"Seeded {len(demo_users)} demo users (development mode)")
+        platform_users = [
+            # ── ADMINS ─────────────────────────────────────────────────────
+            {
+                "id": "u1", "name": "Deepak Bansal", "email": "admin@moviq.in",
+                "role": "admin", "subRole": "Super Admin", "avatar": "DB",
+                "status": "active", "password_hash": pwd_ctx.hash("demo1234"),
+            },
+            {
+                "id": "u2", "name": "Priya Sharma", "email": "priya@moviq.in",
+                "role": "admin", "subRole": "Platform Admin", "avatar": "PS",
+                "status": "active", "password_hash": pwd_ctx.hash("demo1234"),
+            },
+            {
+                "id": "u3", "name": "Rohan Gupta", "email": "rohan@moviq.in",
+                "role": "admin", "subRole": "Operations Admin", "avatar": "RG",
+                "status": "active", "password_hash": pwd_ctx.hash("demo1234"),
+            },
+            # ── AGENCY HEADS (linked to a1, a2, a3) ────────────────────────
+            {
+                "id": "u4", "name": "Saurav Mehta", "email": "saurav@brightads.in",
+                "role": "agency", "avatar": "SM", "agencyId": "a1", "agencyName": "BrightAds Media",
+                "status": "active", "password_hash": pwd_ctx.hash("demo1234"),
+            },
+            {
+                "id": "u5", "name": "Anita Sharma", "email": "anita@metroout.in",
+                "role": "agency", "avatar": "AS", "agencyId": "a2", "agencyName": "Metro Outdoor",
+                "status": "active", "password_hash": pwd_ctx.hash("demo1234"),
+            },
+            {
+                "id": "u6", "name": "Rahul Kapoor", "email": "rahul@urbanreach.co",
+                "role": "agency", "avatar": "RK", "agencyId": "a3", "agencyName": "UrbanReach",
+                "status": "active", "password_hash": pwd_ctx.hash("demo1234"),
+            },
+        ]
+        await db.users.insert_many(platform_users)
+        logger.info(f"Seeded {len(platform_users)} platform users (3 admins + 3 agency heads)")
+
