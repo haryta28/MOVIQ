@@ -19,10 +19,14 @@ def _meta_headers() -> dict:
 
 
 def _wati_headers() -> dict:
+    token = WATI_TOKEN.strip()
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip()
     return {
-        "Authorization": f"Bearer {WATI_TOKEN}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
+
 
 
 def send_text(to: str, text: str) -> None:

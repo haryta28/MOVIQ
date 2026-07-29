@@ -21,10 +21,14 @@ async def health_check():
 async def test_wati(phone: str = "917899003666"):
     import httpx
     from core.config import WATI_TOKEN, WATI_API_ENDPOINT
+    token = WATI_TOKEN.strip()
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip()
     headers = {
-        "Authorization": f"Bearer {WATI_TOKEN}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
+
     url = f"{WATI_API_ENDPOINT}/api/v1/sendSessionMessage/{phone}"
     try:
         with httpx.Client(timeout=10) as client:
