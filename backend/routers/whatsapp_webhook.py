@@ -47,6 +47,15 @@ async def verify_webhook(request: Request):
 async def receive_webhook(request: Request):
     body = await request.json()
     try:
+        # Log incoming webhook to MongoDB for debugging
+        await db.webhook_logs.insert_one({
+            "received_at": datetime.now(timezone.utc).isoformat(),
+            "payload": body
+        })
+    except Exception as log_err:
+        print(f"Failed to log webhook: {log_err}")
+
+    try:
         phone = None
         msg_id = ""
         mtype = "text"
