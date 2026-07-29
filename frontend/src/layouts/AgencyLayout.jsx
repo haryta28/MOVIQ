@@ -1,17 +1,18 @@
 import React from 'react';
-import { LayoutDashboard, Megaphone, ListChecks, Users, Images, FileBarChart, Map, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Megaphone, ListChecks, Users, Images, FileBarChart, Map, Sparkles, MessageSquare } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from './DashboardLayout';
 
 const NAV = [
-  { to: '/agency',           label: 'Overview',    icon: LayoutDashboard, end: true },
-  { to: '/agency/campaigns', label: 'Campaigns',   icon: Megaphone },
-  { to: '/agency/tasks',     label: 'Tasks',       icon: ListChecks },
-  { to: '/agency/live-map',  label: 'Live Map',    icon: Map },
-  { to: '/agency/team',      label: 'Field Team',  icon: Users },
-  { to: '/agency/proofs',    label: 'Media Proofs',icon: Images },
-  { to: '/agency/reports',   label: 'Reports',     icon: FileBarChart },
+  { to: '/agency',                  label: 'Overview',          icon: LayoutDashboard, end: true },
+  { to: '/agency/campaigns',        label: 'Campaigns',         icon: Megaphone },
+  { to: '/agency/tasks',            label: 'Tasks',             icon: ListChecks },
+  { to: '/agency/live-map',         label: 'Live Map',          icon: Map },
+  { to: '/agency/team',             label: 'Field Team',        icon: Users },
+  { to: '/agency/proofs',           label: 'Media Proofs',      icon: Images },
+  { to: '/agency/whatsapp-proofs',  label: 'WhatsApp Proofs',   icon: MessageSquare },
+  { to: '/agency/reports',          label: 'Reports',           icon: FileBarChart },
 ];
 
 function AgencyHeaderSlot({ agencyName }) {

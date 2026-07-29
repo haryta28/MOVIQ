@@ -61,3 +61,24 @@ async def create_vehicle_submission(body: VehicleSubmissionCreate):
 async def list_vehicle_submissions(_: Dict = Depends(get_current_user)):
     docs = await db.vehicle_submissions.find().sort("submittedAt", -1).to_list(500)
     return _clean_many(docs)
+
+
+class VehicleSubmissionUpdate(BaseModel):
+    status: str  # "approved" | "flagged" | "submitted"
+
+
+@router.patch("/{submission_id}")
+async def update_vehicle_submission(
+    submission_id: str,
+    body: VehicleSubmissionUpdate,
+    _: Dict = Depends(get_current_user),
+):
+    doc = await db.vehicle_submissions.find_one({"id": submission_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    await db.vehicle_submissions.update_one(
+        {"id": submission_id},
+        {"$set": {"status": body.status, "updatedAt": datetime.now(timezone.utc).isoformat()}}
+    )
+    updated = await db.vehicle_submissions.find_one({"id": submission_id})
+    return _clean(updated)
