@@ -89,9 +89,14 @@ async def receive_webhook(request: Request):
                 media_ref = msg.get("image", {}).get("id")
         else:
             # ── WATI Webhook Format ──
+            # Discard status updates, read receipts, or messages sent by the bot itself (owner=True)
+            if body.get("eventType") not in (None, "message") or body.get("owner") is True:
+                return {"status": "ignored_event"}
+
             phone = str(body.get("waId") or body.get("whatsappNumber") or body.get("from") or body.get("phone") or "")
             msg_id = str(body.get("id") or body.get("messageId") or uuid.uuid4().hex[:8])
             raw_type = str(body.get("type") or body.get("eventType") or "text").lower()
+
 
             if "location" in body or "latitude" in body or raw_type == "location":
                 mtype = "location"
