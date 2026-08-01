@@ -101,28 +101,44 @@ async def receive_webhook(request: Request):
             if "location" in body or "latitude" in body or raw_type == "location":
                 mtype = "location"
                 import json as _json
-                raw_data = body.get("data")
+                import re as _re
                 lat, lng = 0.0, 0.0
-                # WATI sends location as JSON string in body["data"]
-                if isinstance(raw_data, str):
+                
+                # WATI location messages put Google Maps URL in body.get("text")
+                text_val = body.get("text") or ""
+                url_match = _re.search(r'search/([\d\.\-]+),([\d\.\-]+)', text_val)
+                if url_match:
                     try:
-                        parsed = _json.loads(raw_data)
-                        lat = float(parsed.get("latitude") or parsed.get("lat") or 0)
-                        lng = float(parsed.get("longitude") or parsed.get("lng") or 0)
+                        lat = float(url_match.group(1))
+                        lng = float(url_match.group(2))
                     except Exception:
+                        pass
+                
+                # Fallback: check if we couldn't parse coordinates from URL text
+                if lat == 0.0 and lng == 0.0:
+                    raw_data = body.get("data")
+                    # WATI sends location as JSON string in body["data"]
+                    if isinstance(raw_data, str):
                         try:
-                            parts = raw_data.split(",")
-                            lat, lng = float(parts[0]), float(parts[1])
+                            parsed = _json.loads(raw_data)
+                            lat = float(parsed.get("latitude") or parsed.get("lat") or 0)
+                            lng = float(parsed.get("longitude") or parsed.get("lng") or 0)
                         except Exception:
-                            pass
-                elif isinstance(raw_data, dict):
-                    lat = float(raw_data.get("latitude") or raw_data.get("lat") or 0)
-                    lng = float(raw_data.get("longitude") or raw_data.get("lng") or 0)
-                else:
-                    l = body.get("location") if isinstance(body.get("location"), dict) else body
-                    lat = float(l.get("latitude") or l.get("lat") or 0)
-                    lng = float(l.get("longitude") or l.get("lng") or 0)
+                            try:
+                                parts = raw_data.split(",")
+                                lat, lng = float(parts[0]), float(parts[1])
+                            except Exception:
+                                pass
+                    elif isinstance(raw_data, dict):
+                        lat = float(raw_data.get("latitude") or raw_data.get("lat") or 0)
+                        lng = float(raw_data.get("longitude") or raw_data.get("lng") or 0)
+                    else:
+                        l = body.get("location") if isinstance(body.get("location"), dict) else body
+                        lat = float(l.get("latitude") or l.get("lat") or 0)
+                        lng = float(l.get("longitude") or l.get("lng") or 0)
+                
                 loc_data = {"latitude": lat, "longitude": lng}
+
 
             elif raw_type in ("image", "photo", "media", "document") or body.get("data"):
                 mtype = "image"
