@@ -43,7 +43,7 @@ async def create_vehicle_submission(body: VehicleSubmissionCreate):
         "driverName":  body.driver_name,
         "driverPhone": body.driver_phone,
         "photos":      body.photos,
-        "gps":         body.gps or {"lat": 12.9784, "lng": 77.5946},
+        "gps":         body.gps if (body.gps and (body.gps.get("lat") or body.gps.get("lng"))) else {"lat": 0.0, "lng": 0.0},
         "submittedAt": datetime.now(timezone.utc).isoformat(),
         "status":      "submitted",
         "fraudCheck":  "passed",
