@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
-import { MapPin, Layers, Calendar, Filter, Car, CheckCircle2 } from 'lucide-react';
+import { MapPin, Layers, Calendar, Filter } from 'lucide-react';
 import useParallelApi from '../../hooks/useParallelApi';
 
 const createMarkerIcon = (status) => {
@@ -24,37 +24,23 @@ const createMarkerIcon = (status) => {
   });
 };
 
-// Normalise a task or vehicle submission into one common pin shape
-const normalise = (item, source) => {
-  if (source === 'task') {
-    const lat = parseFloat(item.lat);
-    const lng = parseFloat(item.lng);
-    if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
-    return {
-      id: item.id, lat, lng, status: item.status,
-      label: item.unitCode || item.taskCode || '—',
-      sub: item.mediaType || item.city || '',
-      time: item.submittedAt, source: 'task', raw: item,
-    };
-  }
-  if (source === 'submission') {
-    const lat = parseFloat(item.gps?.lat ?? item.lat ?? 0);
-    const lng = parseFloat(item.gps?.lng ?? item.lng ?? 0);
-    if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
-    return {
-      id: item.id, lat, lng, status: item.status || 'submitted',
-      label: item.vehicle || '—',
-      sub: `Driver: ${item.driverName || '—'}`,
-      time: item.submittedAt, photos: item.photos || [],
-      source: 'submission', raw: item,
-    };
-  }
-  return null;
+// Normalise a vehicle submission into a map pin
+const normalise = (item) => {
+  const lat = parseFloat(item.gps?.lat ?? item.lat ?? 0);
+  const lng = parseFloat(item.gps?.lng ?? item.lng ?? 0);
+  if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+  return {
+    id: item.id, lat, lng, status: item.status || 'submitted',
+    label: item.vehicle || '—',
+    sub: `Driver: ${item.driverName || '—'}`,
+    time: item.submittedAt, photos: item.photos || [],
+    raw: item,
+  };
 };
 
 export default function AgencyLiveMap() {
-  const { results } = useParallelApi(['/tasks', '/vehicle-submissions', '/analytics/overview']);
-  const [tasks = [], submissions = [], analyticsRaw = {}] = results;
+  const { results } = useParallelApi(['/vehicle-submissions', '/analytics/overview']);
+  const [submissions = [], analyticsRaw = {}] = results;
   const cityStats = analyticsRaw?.cityStats || [];
   const [selected, setSelected] = useState(null);
 
@@ -62,11 +48,10 @@ export default function AgencyLiveMap() {
   const mapRef          = useRef(null);
   const markersRef      = useRef([]);
 
-  // Merge both sources, filter out pins with zero/missing GPS
-  const pins = [
-    ...tasks.map(t => normalise(t, 'task')),
-    ...submissions.map(s => normalise(s, 'submission')),
-  ].filter(Boolean);
+  // Only real WhatsApp submissions with valid non-zero GPS
+  const pins = submissions
+    .map(s => normalise(s, 'submission'))
+    .filter(Boolean);
 
   const approved = pins.filter(p => p.status === 'approved').length;
   const flagged  = pins.filter(p => p.status === 'flagged').length;
@@ -193,12 +178,8 @@ export default function AgencyLiveMap() {
             {selected ? (
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2">
-                  {selected.source === 'submission'
-                    ? <Car className="h-4 w-4 text-blue-500" />
-                    : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-                  <span className="text-xs text-slate-500">
-                    {selected.source === 'submission' ? 'WhatsApp submission' : 'Task'}
-                  </span>
+                  <MapPin className="h-4 w-4 text-blue-500" />
+                  <span className="text-xs text-slate-500">WhatsApp submission</span>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Vehicle / Unit</div>
