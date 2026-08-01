@@ -100,11 +100,30 @@ async def receive_webhook(request: Request):
 
             if "location" in body or "latitude" in body or raw_type == "location":
                 mtype = "location"
-                l = body.get("location") if isinstance(body.get("location"), dict) else body
-                loc_data = {
-                    "latitude": float(l.get("latitude") or l.get("lat") or 0),
-                    "longitude": float(l.get("longitude") or l.get("lng") or 0),
-                }
+                import json as _json
+                raw_data = body.get("data")
+                lat, lng = 0.0, 0.0
+                # WATI sends location as JSON string in body["data"]
+                if isinstance(raw_data, str):
+                    try:
+                        parsed = _json.loads(raw_data)
+                        lat = float(parsed.get("latitude") or parsed.get("lat") or 0)
+                        lng = float(parsed.get("longitude") or parsed.get("lng") or 0)
+                    except Exception:
+                        try:
+                            parts = raw_data.split(",")
+                            lat, lng = float(parts[0]), float(parts[1])
+                        except Exception:
+                            pass
+                elif isinstance(raw_data, dict):
+                    lat = float(raw_data.get("latitude") or raw_data.get("lat") or 0)
+                    lng = float(raw_data.get("longitude") or raw_data.get("lng") or 0)
+                else:
+                    l = body.get("location") if isinstance(body.get("location"), dict) else body
+                    lat = float(l.get("latitude") or l.get("lat") or 0)
+                    lng = float(l.get("longitude") or l.get("lng") or 0)
+                loc_data = {"latitude": lat, "longitude": lng}
+
             elif raw_type in ("image", "photo", "media", "document") or body.get("data"):
                 mtype = "image"
                 media_ref = (
