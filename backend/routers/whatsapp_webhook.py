@@ -284,7 +284,7 @@ async def receive_webhook(request: Request):
                     f"🚚 Vehicle: *{doc['vehicle']}*\n"
                     f"👤 Driver: *{doc['driverName']}*\n"
                     f"📸 Photos: 3/3 ✅\n"
-                    f"📍 GPS: {gps.get('lat', 0):.4f}, {gps.get('lng', 0):.4f}\n"
+                    f"📍 GPS location has been stored accurately in the backend ✅\n"
                     f"🕒 Time: {datetime.now(timezone.utc).strftime('%d %b %Y, %I:%M %p')} UTC\n"
                     f"🔍 Fraud check: PASSED ✅\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n\n"
