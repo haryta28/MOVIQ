@@ -102,6 +102,8 @@ def send_buttons(to: str, body: str, buttons: list[dict]) -> None:
 
 def download_media(media_ref: str) -> bytes:
     """Download a media object (image) from WATI URL or Meta Cloud API."""
+    if not media_ref:
+        raise ValueError("media_ref is empty — cannot download image")
     with httpx.Client(timeout=30) as client:
         # If media_ref is an absolute HTTP/HTTPS URL (supplied directly by WATI webhooks)
         if media_ref.startswith("http://") or media_ref.startswith("https://"):

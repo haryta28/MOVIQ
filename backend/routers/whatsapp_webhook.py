@@ -105,15 +105,18 @@ async def receive_webhook(request: Request):
                     "latitude": float(l.get("latitude") or l.get("lat") or 0),
                     "longitude": float(l.get("longitude") or l.get("lng") or 0),
                 }
-            elif "media" in body or "mediaUrl" in body or "url" in body or raw_type in ("image", "photo", "media"):
+            elif raw_type in ("image", "photo", "media", "document") or body.get("data"):
                 mtype = "image"
                 media_ref = (
-                    body.get("mediaUrl")
+                    body.get("data")           # WATI puts image URL here
+                    or body.get("mediaUrl")
                     or body.get("media")
                     or body.get("url")
                     or (body.get("image", {}).get("url") if isinstance(body.get("image"), dict) else None)
                     or (body.get("image", {}).get("id") if isinstance(body.get("image"), dict) else None)
                 )
+                if not media_ref:
+                    return {"status": "no_media_ref"}
             else:
                 mtype = "text"
                 msg_text = (
