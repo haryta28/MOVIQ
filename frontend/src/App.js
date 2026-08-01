@@ -29,7 +29,6 @@ const AgencyCampaigns     = lazy(() => import('./pages/agency/AgencyCampaigns'))
 const AgencyCampaignDetail = lazy(() => import('./pages/agency/AgencyCampaignDetail'));
 const AgencyTasks         = lazy(() => import('./pages/agency/AgencyTasks'));
 const AgencyTeam          = lazy(() => import('./pages/agency/AgencyTeam'));
-const AgencyProofs              = lazy(() => import('./pages/agency/AgencyProofs'));
 const AgencyReports             = lazy(() => import('./pages/agency/AgencyReports'));
 const AgencyLiveMap             = lazy(() => import('./pages/agency/AgencyLiveMap'));
 const WhatsAppSubmissions       = lazy(() => import('./pages/agency/WhatsAppSubmissions'));
@@ -91,8 +90,7 @@ function App() {
                 <Route path="campaigns/:id"    element={<AgencyCampaignDetail />} />
                 <Route path="tasks"            element={<AgencyTasks />} />
                 <Route path="team"             element={<AgencyTeam />} />
-                <Route path="proofs"           element={<AgencyProofs />} />
-                <Route path="whatsapp-proofs" element={<WhatsAppSubmissions />} />
+                <Route path="proofs"           element={<WhatsAppSubmissions />} />
                 <Route path="reports"          element={<AgencyReports />} />
                 <Route path="live-map"         element={<AgencyLiveMap />} />
                 <Route path="profile"          element={<UserProfile />} />

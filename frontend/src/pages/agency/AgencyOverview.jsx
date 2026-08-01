@@ -10,10 +10,10 @@ import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyOverview() {
   const { user } = useAuth();
-  const { results } = useParallelApi(['/campaigns', '/tasks', '/users?role=field', '/analytics/overview']);
+  const { results } = useParallelApi(['/campaigns', '/vehicle-submissions', '/users?role=field', '/analytics/overview']);
   const [
     campaigns = [],
-    tasks = [],
+    submissions = [],
     team = [],
     analytics = { monthlyStats: [] }
   ] = results;
@@ -21,9 +21,11 @@ export default function AgencyOverview() {
   const [selectedTask, setSelectedTask] = useState(null);
 
   const completed = campaigns.reduce((s, c) => s + (c.completed || 0), 0);
-  const total = campaigns.reduce((s, c) => s + (c.totalTasks || 0), 0);
-  const active = campaigns.filter(c => c.status === 'ongoing').length;
-  const recentTasks = tasks.slice(0, 6);
+  const total     = campaigns.reduce((s, c) => s + (c.totalTasks || 0), 0);
+  const active    = campaigns.filter(c => c.status === 'ongoing').length;
+  // Recent real WhatsApp submissions for activity feed
+  const recentActivity = submissions.slice(0, 6);
+  const photosTotal    = submissions.reduce((s, sub) => s + (sub.photos?.length || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -38,7 +40,9 @@ export default function AgencyOverview() {
         </Link>
         <KpiCard label="Tasks completed" value={`${completed}/${total}`} icon={ListChecks} delta={15} accent="blue" />
         <KpiCard label="Field executives" value={team.length} icon={Users} delta={4} accent="emerald" />
-        <KpiCard label="Photos verified today" value="312" icon={Camera} delta={22} accent="violet" />
+        <Link to="/agency/proofs" className="block transition hover:opacity-95">
+          <KpiCard label="Photos submitted" value={photosTotal} icon={Camera} delta={null} accent="violet" />
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -75,24 +79,27 @@ export default function AgencyOverview() {
             <Clock className="h-4 w-4 text-slate-400" />
           </div>
           <div className="space-y-3">
-            {recentTasks.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setSelectedTask(t)}
-                className="w-full flex items-start gap-3 p-2 rounded-md hover:bg-slate-50 text-left transition border border-transparent hover:border-slate-100"
+            {recentActivity.length === 0 ? (
+              <div className="text-sm text-slate-400 text-center py-6">
+                No submissions yet — send "Hi" on WhatsApp to get started.
+              </div>
+            ) : recentActivity.map(s => (
+              <div
+                key={s.id}
+                className="w-full flex items-start gap-3 p-2 rounded-md bg-slate-50 border border-slate-100"
               >
-                <div className="h-8 w-8 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
-                  <MapPin className="h-4 w-4 text-slate-500" />
+                <div className="h-8 w-8 rounded-md bg-emerald-50 flex items-center justify-center shrink-0">
+                  <Camera className="h-4 w-4 text-emerald-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-900 truncate">{t.unitCode}</span>
-                    <StatusBadge status={t.status} />
+                    <span className="text-sm font-medium text-slate-900 truncate font-mono">{s.vehicle}</span>
+                    <StatusBadge status={s.status} />
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5 truncate">{t.address}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">{t.assignedTo} · {t.submittedAt || 'awaiting'}</div>
+                  <div className="text-xs text-slate-500 mt-0.5 truncate">Driver: {s.driverName}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">{s.submittedAt ? new Date(s.submittedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'live'}</div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </Card>

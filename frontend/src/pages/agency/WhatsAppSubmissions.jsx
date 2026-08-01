@@ -42,7 +42,7 @@ export default function WhatsAppSubmissions() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="WhatsApp Submissions"
+        title="Media Proofs"
         description="Vehicle branding proofs submitted by field executives via WhatsApp bot."
         actions={
           <div className="flex items-center gap-2">
