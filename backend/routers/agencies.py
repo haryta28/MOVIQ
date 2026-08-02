@@ -12,7 +12,7 @@ from core.auth import get_current_user, require_admin, pwd_ctx
 from core.db import db
 from core.helpers import _clean, _clean_many, create_notification
 from core.mail import send_invite_email
-from core.whatsapp import send_text
+from core.whatsapp import send_text, send_user_invite_whatsapp
 
 router = APIRouter(prefix="/agencies", tags=["agencies"])
 
@@ -80,16 +80,14 @@ async def create_agency(body: AgencyCreate, _: Dict = Depends(require_admin)):
         await db.users.insert_one(agency_user)
         # Send WhatsApp invite if phone is provided
         if body.phone:
-            msg = (
-                f"Hi {body.head or body.name}! 👋\n\n"
-                f"Your agency *{body.name}* has been onboarded to the MOVIQ Field Operations Platform.\n\n"
-                f"🔑 Login: moviq-bwz.vercel.app\n"
-                f"📧 Email: {body.email.lower()}\n"
-                f"🔐 Password: {temp_password}\n\n"
-                f"Please change your password after first login via Settings."
-            )
             try:
-                send_text(body.phone, msg)
+                send_user_invite_whatsapp(
+                    to=body.phone,
+                    name=body.head or body.name,
+                    role="Agency Head",
+                    email=body.email.lower(),
+                    password=temp_password,
+                )
             except Exception:
                 pass
         await send_invite_email(agency_user["name"], agency_user["email"], "agency")

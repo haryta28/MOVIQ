@@ -30,7 +30,7 @@ async def seed_all() -> None:
     await _seed_if_empty("media_types",       MEDIA_TYPES)
     await _seed_if_empty("campaigns",         CAMPAIGNS)
     await _seed_if_empty("tasks",             [])
-    await _seed_if_empty("fraud_alerts",      FRAUD_ALERTS)
+    await _seed_if_empty("fraud_alerts",      [])
     await _seed_if_empty("field_executives",  FIELD_EXECUTIVES)
     await _seed_if_empty("supervisors",       SUPERVISORS)
     await _seed_if_empty("monthly_stats",     MONTHLY_STATS)

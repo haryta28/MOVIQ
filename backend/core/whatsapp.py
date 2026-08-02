@@ -29,6 +29,61 @@ def _wati_headers() -> dict:
 
 
 
+def send_wati_template(to: str, template_name: str, parameters: list[dict]) -> bool:
+    """Send an approved WATI template message (outbound first contact)."""
+    clean_to = "".join(filter(str.isdigit, to))
+    if not clean_to:
+        return False
+        
+    if WATI_TOKEN and WATI_API_ENDPOINT:
+        try:
+            with httpx.Client(timeout=10) as client:
+                url = f"{WATI_API_ENDPOINT}/api/v1/sendTemplateMessage/{clean_to}"
+                payload = {
+                    "template_name": template_name,
+                    "broadcast_name": f"invite_{template_name}",
+                    "parameters": parameters,
+                }
+                resp = client.post(url, headers=_wati_headers(), json=payload)
+                if resp.status_code in (200, 201, 202):
+                    logger.info(f"✅ Sent WATI template '{template_name}' to {clean_to}")
+                    return True
+                else:
+                    logger.warning(f"WATI template message failed ({resp.status_code}): {resp.text}")
+        except Exception as e:
+            logger.error(f"Failed sending WATI template: {e}")
+
+    return False
+
+
+def send_user_invite_whatsapp(to: str, name: str, role: str, email: str, password: str) -> None:
+    """Send user invitation credentials via WATI template (with text fallback)."""
+    role_labels = {"admin": "Platform Admin", "agency": "Agency Head", "supervisor": "Supervisor", "field": "Field Executive"}
+    role_str = role_labels.get(role.lower(), role)
+    
+    # 1. Attempt template message (requires approved template 'moviq_user_invite')
+    params = [
+        {"name": "1", "value": name},
+        {"name": "2", "value": role_str},
+        {"name": "3", "value": "moviq-bwz.vercel.app"},
+        {"name": "4", "value": email},
+        {"name": "5", "value": password},
+    ]
+    sent_template = send_wati_template(to, "moviq_user_invite", params)
+    
+    # 2. Fallback to session text message if template is not yet approved
+    if not sent_template:
+        msg = (
+            f"Hi {name}! 👋\n\n"
+            f"You've been invited to the MOVIQ Field Operations Platform as *{role_str}*.\n\n"
+            f"🔑 Login: moviq-bwz.vercel.app\n"
+            f"📧 Email: {email}\n"
+            f"🔐 Password: {password}\n\n"
+            f"Please change your password after first login via Settings."
+        )
+        send_text(to, msg)
+
+
 def send_text(to: str, text: str) -> None:
     """Send a plain text message via WATI or Meta Cloud API."""
     clean_to = "".join(filter(str.isdigit, to))

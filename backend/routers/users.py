@@ -11,7 +11,7 @@ from core.auth import get_current_user, pwd_ctx
 from core.db import db
 from core.helpers import _clean, _clean_many
 from core.mail import send_invite_email
-from core.whatsapp import send_text
+from core.whatsapp import send_text, send_user_invite_whatsapp
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -160,17 +160,14 @@ async def create_user(body: UserCreate, user: Dict = Depends(get_current_user)):
         await db.users.insert_one(doc)
         # Send WhatsApp invite if phone number is provided and WATI is configured
         if body.phone:
-            role_labels = {"admin": "Platform Admin", "agency": "Agency Head", "supervisor": "Supervisor", "field": "Field Executive"}
-            msg = (
-                f"Hi {body.name}! 👋\n\n"
-                f"You've been invited to the MOVIQ Field Operations Platform as *{role_labels.get(role, role)}*.\n\n"
-                f"🔑 Login: moviq-bwz.vercel.app\n"
-                f"📧 Email: {body.email.lower()}\n"
-                f"🔐 Password: {temp_password}\n\n"
-                f"Please change your password after first login via Settings."
-            )
             try:
-                send_text(body.phone, msg)
+                send_user_invite_whatsapp(
+                    to=body.phone,
+                    name=body.name,
+                    role=role,
+                    email=body.email.lower(),
+                    password=temp_password,
+                )
             except Exception:
                 pass  # Non-fatal: credentials are shown in the UI
         if body.email:
