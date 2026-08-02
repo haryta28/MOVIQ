@@ -16,7 +16,6 @@ function DetectionSettingsModal({ open, onClose }) {
     gpsDeviation:      true,
     backdatedUpload:   true,
     lowPhotoQuality:   true,
-    reusedQR:          true,
   });
 
   const toggle = (key) => setRules(r => ({ ...r, [key]: !r[key] }));
@@ -26,7 +25,6 @@ function DetectionSettingsModal({ open, onClose }) {
     { key: 'gpsDeviation',      label: 'GPS Mismatch Detection',     desc: 'Alerts when the submitted GPS location deviates more than 500m from the assigned area.' },
     { key: 'backdatedUpload',   label: 'Backdated Upload Detection',  desc: 'Checks photo EXIF timestamp against the submission time. Flags if more than 24h apart.' },
     { key: 'lowPhotoQuality',   label: 'Low Photo Quality Filter',   desc: 'Uses blur and brightness analysis to flag unverifiable installation photos.' },
-    { key: 'reusedQR',          label: 'Reused QR Code Detection',   desc: 'Detects if the same QR sticker code is scanned at more than one location.' },
   ];
 
   return (
@@ -39,11 +37,11 @@ function DetectionSettingsModal({ open, onClose }) {
           </DialogTitle>
         </DialogHeader>
 
-        {/* AI note */}
+        {/* Info note */}
         <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100 text-sm text-indigo-800">
           <Info className="h-4 w-4 shrink-0 mt-0.5 text-indigo-600" />
           <div>
-            <span className="font-semibold">Automated Rule Engine</span> — Fraud checks run automatically on every WhatsApp submission using image hashing, GPS comparison, and EXIF metadata parsing. No external AI API is required; all analysis runs on the backend at submission time.
+            <span className="font-semibold">Automated Rule Engine</span> — Fraud checks run automatically on every WhatsApp submission using image hashing, GPS comparison, and EXIF metadata parsing.
           </div>
         </div>
 
