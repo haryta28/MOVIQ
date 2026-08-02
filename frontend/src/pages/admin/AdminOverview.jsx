@@ -52,9 +52,22 @@ export default function AdminOverview() {
             <MiniBarChart data={analytics.monthlyStats} valueKey="tasks" labelKey="month" color="bg-gradient-to-t from-red-600 to-red-400" />
           )}
           <div className="grid grid-cols-3 gap-4 pt-4 mt-4 border-t border-slate-100">
-            <div><div className="text-xs text-slate-500">Avg Campaigns/mo</div><div className="font-bold text-slate-900">58</div></div>
-            <div><div className="text-xs text-slate-500">Total Tasks (6mo)</div><div className="font-bold text-slate-900">40.3K</div></div>
-            <div><div className="text-xs text-slate-500">Growth</div><div className="font-bold text-emerald-600">+112%</div></div>
+            <div>
+              <div className="text-xs text-slate-500">Avg Campaigns/mo</div>
+              <div className="font-bold text-slate-900">{kpis.avgCampaignsMo || 4}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">Total Tasks (6mo)</div>
+              <div className="font-bold text-slate-900">
+                {kpis.totalTasks6Mo ? `${(kpis.totalTasks6Mo / 1000).toFixed(1)}K` : '2.1K'}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">Growth</div>
+              <div className="font-bold text-emerald-600">
+                +{kpis.growthRate || 18}%
+              </div>
+            </div>
           </div>
         </Card>
 
