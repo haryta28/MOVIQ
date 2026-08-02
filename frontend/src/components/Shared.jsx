@@ -60,6 +60,9 @@ export const StatusBadge = memo(function StatusBadge({ status }) {
     high:        'bg-rose-50 text-rose-700 border-rose-200',
     medium:      'bg-amber-50 text-amber-700 border-amber-200',
     low:         'bg-slate-100 text-slate-700 border-slate-200',
+    paused:      'bg-amber-50 text-amber-700 border-amber-200 font-semibold',
+    suspended:   'bg-amber-50 text-amber-700 border-amber-200 font-semibold',
+    deleted:     'bg-rose-50 text-rose-700 border-rose-200 font-semibold',
   };
   const label = status.replace('_', ' ');
   return (

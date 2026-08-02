@@ -498,6 +498,7 @@ export default function AdminCampaigns() {
             <SelectContent>
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="ongoing">Ongoing</SelectItem>
+              <SelectItem value="paused">Paused</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>
@@ -507,38 +508,45 @@ export default function AdminCampaigns() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map(c => (
-            <Card key={c.id} className="p-5 hover:shadow-md transition">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-bold text-xs">
-                    {(c.brand || '').slice(0, 2).toUpperCase()}
+            <Card
+              key={c.id}
+              onClick={() => setSelectedCampaign(c)}
+              className="p-5 hover:shadow-md hover:border-slate-300 transition cursor-pointer flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-bold text-xs">
+                      {(c.brand || '').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900 hover:text-red-600 transition">{c.title}</div>
+                      <div className="text-xs text-slate-500">{c.brand} · {c.agency}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-slate-900">{c.title}</div>
-                    <div className="text-xs text-slate-500">{c.brand} · {c.agency}</div>
-                  </div>
+                  <StatusBadge status={c.status} />
                 </div>
-                <StatusBadge status={c.status} />
+                <div className="grid grid-cols-3 gap-3 text-xs text-slate-500 mb-3">
+                  <div><div className="text-slate-400">City</div><div className="text-slate-800 font-medium">{c.city}</div></div>
+                  <div><div className="text-slate-400">Media</div><div className="text-slate-800 font-medium">{c.mediaType}</div></div>
+                  <div><div className="text-slate-400">Budget</div><div className="text-slate-800 font-medium">₹ {((c.budget || 0) / 100000).toFixed(1)}L</div></div>
+                </div>
+                <ProgressBar
+                  value={c.completed || 0}
+                  max={c.totalTasks || 1}
+                  color={c.status === 'completed' ? 'bg-emerald-500' : c.status === 'paused' ? 'bg-amber-500' : 'bg-red-600'}
+                />
               </div>
-              <div className="grid grid-cols-3 gap-3 text-xs text-slate-500 mb-3">
-                <div><div className="text-slate-400">City</div><div className="text-slate-800 font-medium">{c.city}</div></div>
-                <div><div className="text-slate-400">Media</div><div className="text-slate-800 font-medium">{c.mediaType}</div></div>
-                <div><div className="text-slate-400">Budget</div><div className="text-slate-800 font-medium">₹ {((c.budget || 0) / 100000).toFixed(1)}L</div></div>
-              </div>
-              <ProgressBar
-                value={c.completed || 0}
-                max={c.totalTasks || 1}
-                color={c.status === 'completed' ? 'bg-emerald-500' : 'bg-red-600'}
-              />
+
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                 <div className="text-xs text-slate-500">
                   {c.flagged > 0 ? <span className="text-rose-600 font-medium">{c.flagged} flagged</span> : 'No flags'}
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" className="text-red-600" onClick={() => setSelectedCampaign(c)}>
+                  <Button size="sm" variant="ghost" className="text-red-600" onClick={(e) => { e.stopPropagation(); setSelectedCampaign(c); }}>
                     <Eye className="h-3.5 w-3.5 mr-1" /> View
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-slate-600" onClick={() => setEditingCampaign(c)}>
+                  <Button size="sm" variant="ghost" className="text-slate-600" onClick={(e) => { e.stopPropagation(); setEditingCampaign(c); }}>
                     <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                   </Button>
                 </div>

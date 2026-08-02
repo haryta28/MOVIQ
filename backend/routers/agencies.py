@@ -123,18 +123,23 @@ async def update_agency(aid: str, body: AgencyUpdate, _: Dict = Depends(require_
     if update_data:
         await db.agencies.update_one({"id": aid}, {"$set": update_data})
 
-    # ── Cascade status change to all agency users ────────────────────────────
+    # ── Cascade status change to all agency users & campaigns ────────────────
     new_status = body.status
-    if new_status == "suspended":
+    if new_status in ("suspended", "deleted"):
         # Block all agency users from logging in
         await db.users.update_many(
             {"agencyId": aid, "role": {"$ne": "admin"}},
             {"$set": {"status": "suspended"}}
         )
+        # Pause all ongoing campaigns belonging to this agency
+        await db.campaigns.update_many(
+            {"agencyId": aid, "status": "ongoing"},
+            {"$set": {"status": "paused", "pauseReason": f"Agency {new_status}"}}
+        )
         await create_notification(
-            "Agency suspended",
-            f"{doc['name']} has been suspended. All user access revoked.",
-            "warning",
+            f"Agency {new_status}",
+            f"{doc['name']} has been {new_status}. All user access revoked & ongoing campaigns paused.",
+            "warning" if new_status == "suspended" else "error",
         )
     elif new_status in ("active", "trial"):
         # Restore access for all agency users
@@ -142,9 +147,14 @@ async def update_agency(aid: str, body: AgencyUpdate, _: Dict = Depends(require_
             {"agencyId": aid, "role": {"$ne": "admin"}},
             {"$set": {"status": "active"}}
         )
+        # Resume paused campaigns belonging to this agency
+        await db.campaigns.update_many(
+            {"agencyId": aid, "status": "paused"},
+            {"$set": {"status": "ongoing"}}
+        )
         await create_notification(
             "Agency reactivated",
-            f"{doc['name']} access has been restored.",
+            f"{doc['name']} access and campaigns have been restored.",
             "success",
         )
         
@@ -161,7 +171,7 @@ async def delete_agency(aid: str, _: Dict = Depends(require_admin)):
     if not doc:
         raise HTTPException(status_code=404, detail="Agency not found")
 
-    # Soft delete — preserve all records, just revoke access
+    # Soft delete — preserve all records, just revoke access & pause campaigns
     await db.agencies.update_one(
         {"id": aid},
         {"$set": {"status": "deleted", "deletedAt": datetime.now(timezone.utc).isoformat()}}
@@ -171,9 +181,14 @@ async def delete_agency(aid: str, _: Dict = Depends(require_admin)):
         {"agencyId": aid, "role": {"$ne": "admin"}},
         {"$set": {"status": "suspended"}}
     )
+    # Pause all ongoing campaigns for this agency
+    await db.campaigns.update_many(
+        {"agencyId": aid, "status": "ongoing"},
+        {"$set": {"status": "paused", "pauseReason": "Agency deleted"}}
+    )
     await create_notification(
         "Agency deleted",
-        f"{doc['name']} removed from platform. User access revoked, records preserved.",
+        f"{doc['name']} removed from platform. User access revoked, campaigns paused, records preserved.",
         "error",
     )
     return {"status": "ok", "message": f"Agency {aid} soft-deleted. Records preserved."}
