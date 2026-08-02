@@ -50,6 +50,16 @@ async def get_current_user(
     user = await db.users.find_one({"id": payload["sub"]})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    if user.get("status") in ("suspended", "deleted"):
+        raise HTTPException(status_code=403, detail="Account suspended")
+    
+    # Check if user's agency is active
+    agency_id = user.get("agencyId")
+    if agency_id and user.get("role") != "admin":
+        agency = await db.agencies.find_one({"id": agency_id})
+        if not agency or agency.get("status") in ("suspended", "deleted"):
+            raise HTTPException(status_code=403, detail="Agency suspended or deleted")
+
     user.pop("password_hash", None)
     return _clean(user)
 

@@ -29,6 +29,16 @@ async def auth_login(request: Request, body: LoginRequest):
             status_code=403,
             detail="Your account has been suspended. Please contact your administrator."
         )
+    # Check if agency is active
+    agency_id = user.get("agencyId")
+    if agency_id and user.get("role") != "admin":
+        agency = await db.agencies.find_one({"id": agency_id})
+        if not agency or agency.get("status") in ("suspended", "deleted"):
+            await db.users.update_one({"id": user["id"]}, {"$set": {"status": "suspended"}})
+            raise HTTPException(
+                status_code=403,
+                detail="Your agency account has been suspended or deleted. Please contact your administrator."
+            )
     user.pop("password_hash", None)
     user = _clean(user)
     return {"token": create_jwt(user), "user": user}
