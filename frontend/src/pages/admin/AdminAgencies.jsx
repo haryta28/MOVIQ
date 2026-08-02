@@ -4,7 +4,7 @@ import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader, StatusBadge } from '../../components/Shared';
-import { Plus, Search, MoreHorizontal, Building2, MapPin, Users, Megaphone, Copy, Check, AlertTriangle, Phone } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Building2, MapPin, Users, Megaphone, Copy, Check, AlertTriangle, Phone, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -95,6 +95,8 @@ export default function AdminAgencies() {
   const [form, setForm] = useState({
     name: '', head: '', email: '', phone: '', city: '', plan: 'Growth', campaignLimit: 10
   });
+
+  const { data: agencyHeads = [] } = useApi('/users?role=agency');
 
   // Filter by search + status tab (deleted agencies always visible to admin)
   const filtered = displayed.filter(a => {
@@ -190,14 +192,48 @@ export default function AdminAgencies() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Onboard new agency</DialogTitle></DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* Helper note */}
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-start gap-2">
+                <Info className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                <div>
+                  <strong>Setup Order:</strong> Add the Agency Head first in the <strong>Users</strong> page, then select them here to onboard their agency.
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-2">
                 <div className="col-span-2">
                   <Label>Agency name</Label>
                   <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="mt-1" placeholder="BrightAds Media" />
                 </div>
-                <div><Label>Head / Founder</Label><Input value={form.head} onChange={e => setForm({...form, head: e.target.value})} className="mt-1" /></div>
-                <div><Label>City</Label><Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} className="mt-1" /></div>
-                <div><Label>Email (login)</Label><Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="mt-1" /></div>
+                <div className="col-span-2 sm:col-span-1">
+                  <Label>Head / Founder</Label>
+                  {agencyHeads.length > 0 ? (
+                    <Select
+                      value={form.head}
+                      onValueChange={v => {
+                        const selectedHead = agencyHeads.find(u => u.name === v);
+                        setForm({
+                          ...form,
+                          head: v,
+                          email: selectedHead?.email || form.email,
+                          phone: selectedHead?.phone || form.phone,
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select Agency Head" /></SelectTrigger>
+                      <SelectContent>
+                        {agencyHeads.map(u => (
+                          <SelectItem key={u.id} value={u.name}>{u.name} ({u.email})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={form.head} onChange={e => setForm({...form, head: e.target.value})} className="mt-1" placeholder="Founder Name" />
+                  )}
+                </div>
+                <div><Label>City</Label><Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} className="mt-1" placeholder="Bengaluru" /></div>
+                <div><Label>Email (login)</Label><Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="mt-1" placeholder="saurav@brightads.in" /></div>
                 <div>
                   <Label className="flex items-center gap-1">
                     Phone <Phone className="h-3 w-3 text-green-600" />

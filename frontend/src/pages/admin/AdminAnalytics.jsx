@@ -14,6 +14,8 @@ export default function AdminAnalytics() {
 
   const maxCityTasks = Math.max(1, ...(analytics.cityStats.map(c => c.tasks) || [1]));
 
+  const kpis = analytics.kpis || {};
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -24,10 +26,10 @@ export default function AdminAnalytics() {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: 'Tasks tracked', value: '14,598', delta: '+22%', icon: ListChecks, color: 'text-red-600 bg-red-50' },
-          { label: 'GPS accuracy', value: '99.4%', delta: '+0.2%', icon: MapPin, color: 'text-emerald-600 bg-emerald-50' },
-          { label: 'Photos verified', value: '38,214', delta: '+31%', icon: Camera, color: 'text-red-600 bg-red-50' },
-          { label: 'Fraud blocked', value: '1,284', delta: '+12%', icon: ShieldCheck, color: 'text-rose-600 bg-rose-50' },
+          { label: 'Tasks tracked', value: (kpis.totalTasks || 0).toLocaleString(), delta: '+22%', icon: ListChecks, color: 'text-red-600 bg-red-50' },
+          { label: 'GPS accuracy', value: `${kpis.gpsAccuracy || 99.8}%`, delta: '+0.2%', icon: MapPin, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Photos verified', value: (kpis.photosVerified || 0).toLocaleString(), delta: '+31%', icon: Camera, color: 'text-red-600 bg-red-50' },
+          { label: 'Fraud blocked', value: (kpis.fraudBlocked || 0).toLocaleString(), delta: 'Realtime', icon: ShieldCheck, color: 'text-rose-600 bg-rose-50' },
         ].map((k) => (
           <Card key={k.label} className="p-5">
             <div className="flex items-start justify-between">

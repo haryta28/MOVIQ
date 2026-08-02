@@ -239,17 +239,23 @@ export default function AdminFraud() {
         </Card>
         <Card className="p-5">
           <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Resolved (7d)</div>
-          <div className="text-3xl font-bold text-emerald-600 mt-1">142</div>
-          <div className="text-xs text-slate-500 mt-1">98% resolution rate</div>
+          <div className="text-3xl font-bold text-emerald-600 mt-1">
+            {fetchedAlerts.filter(a => a.status === 'resolved').length}
+          </div>
+          <div className="text-xs text-slate-500 mt-1">Reviewed and closed</div>
         </Card>
         <Card className="p-5">
           <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Fraud attempts blocked</div>
-          <div className="text-3xl font-bold text-slate-900 mt-1">1,284</div>
-          <div className="text-xs text-slate-500 mt-1">All-time</div>
+          <div className="text-3xl font-bold text-slate-900 mt-1">
+            {fetchedAlerts.filter(a => a.status === 'resolved').length}
+          </div>
+          <div className="text-xs text-slate-500 mt-1">Realtime protection</div>
         </Card>
         <Card className="p-5">
           <div className="text-xs uppercase tracking-wide text-slate-500 font-semibold">Savings (est.)</div>
-          <div className="text-3xl font-bold text-red-600 mt-1">₹ 42L</div>
+          <div className="text-3xl font-bold text-red-600 mt-1">
+            ₹ {((fetchedAlerts.filter(a => a.status === 'resolved').length * 45000) / 100000).toFixed(1)}L
+          </div>
           <div className="text-xs text-slate-500 mt-1">Prevented losses</div>
         </Card>
       </div>

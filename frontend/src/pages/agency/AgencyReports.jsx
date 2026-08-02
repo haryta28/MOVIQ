@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { PageHeader, ProgressBar } from '../../components/Shared';
-import { Download, Share2, FileBarChart, TrendingUp, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { PageHeader, ProgressBar, StatusBadge } from '../../components/Shared';
+import { Download, FileBarChart, FileSpreadsheet, Loader2, MapPin, CheckCircle2 } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
 import { API_BASE } from '../../api';
 import useParallelApi from '../../hooks/useParallelApi';
@@ -31,7 +31,7 @@ export default function AgencyReports() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast({ title: 'Downloaded', description: `${kind.toUpperCase()} report saved.` });
+      toast({ title: 'Report Downloaded', description: `${kind.toUpperCase()} report generated.` });
     } catch (e) {
       toast({ title: 'Download failed', description: 'Please try again.' });
     } finally {
@@ -43,81 +43,84 @@ export default function AgencyReports() {
     <div className="space-y-6">
       <PageHeader
         title="Reports"
-        description="Auto-generated, client-ready reports in seconds."
-        actions={<Button className="bg-red-600 hover:bg-red-700 text-white"><FileBarChart className="h-4 w-4 mr-1" /> New report</Button>}
+        description="Auto-generated, client-ready campaign execution reports in PDF and Excel format."
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {campaigns.map(c => (
-          <Card key={c.id} className="p-5 hover:shadow-md transition">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <div className="text-xs text-slate-500">{c.brand}</div>
-                <div className="font-semibold text-slate-900">{c.title}</div>
-              </div>
-              <div className="h-10 w-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
-                <FileBarChart className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 my-3">
-              <div><div className="text-xs text-slate-500">Total</div><div className="font-bold">{c.totalTasks}</div></div>
-              <div><div className="text-xs text-slate-500">Done</div><div className="font-bold text-emerald-600">{c.completed}</div></div>
-              <div><div className="text-xs text-slate-500">Rate</div><div className="font-bold">{c.totalTasks ? Math.round((c.completed/c.totalTasks)*100) : 0}%</div></div>
-            </div>
-            <ProgressBar value={c.completed || 0} max={c.totalTasks || 1} color="bg-red-600" />
-            <div className="flex gap-2 mt-4">
-              <Button size="sm" variant="outline" className="flex-1" disabled={downloading === `${c.id}-pdf`} onClick={() => download(c.id, 'pdf', c.title)}>
-                {downloading === `${c.id}-pdf` ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />} PDF
-              </Button>
-              <Button size="sm" variant="outline" className="flex-1" disabled={downloading === `${c.id}-excel`} onClick={() => download(c.id, 'excel', c.title)}>
-                {downloading === `${c.id}-excel` ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 mr-1" />} Excel
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => toast({ title: 'Link copied', description: 'Client dashboard link copied to clipboard.' })}><Share2 className="h-3.5 w-3.5" /></Button>
-            </div>
+      <div className="space-y-4">
+        {campaigns.length === 0 ? (
+          <Card className="p-8 text-center text-slate-500">
+            <FileBarChart className="h-10 w-10 mx-auto mb-2 text-slate-400 opacity-60" />
+            <div className="font-semibold text-slate-700">No campaigns found</div>
+            <p className="text-sm text-slate-500 mt-1">Reports will be available once campaigns are created.</p>
           </Card>
-        ))}
-      </div>
-
-      {campaigns[0] && (
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-slate-900">Campaign Summary Report</h3>
-              <p className="text-sm text-slate-500">{campaigns[0].title} · {campaigns[0].mediaType} · Jul 2025</p>
-            </div>
-            <TrendingUp className="h-5 w-5 text-emerald-600" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="p-4 rounded-lg bg-slate-50"><div className="text-xs text-slate-500">Total Units</div><div className="text-2xl font-bold">{campaigns[0].totalTasks}</div></div>
-            <div className="p-4 rounded-lg bg-slate-50"><div className="text-xs text-slate-500">Installed</div><div className="text-2xl font-bold text-emerald-600">{campaigns[0].completed}</div></div>
-            <div className="p-4 rounded-lg bg-slate-50"><div className="text-xs text-slate-500">Completion</div><div className="text-2xl font-bold">{campaigns[0].totalTasks ? Math.round((campaigns[0].completed/campaigns[0].totalTasks)*100) : 0}%</div></div>
-            <div className="p-4 rounded-lg bg-slate-50"><div className="text-xs text-slate-500">Flagged</div><div className="text-2xl font-bold text-rose-600">{campaigns[0].flagged}</div></div>
-          </div>
-          <div>
-            <div className="text-sm font-medium mb-3">City breakdown</div>
-            <div className="space-y-2">
-              {cityStats.slice(0, 5).map(c => (
-                <div key={c.city} className="flex items-center gap-3">
-                  <div className="text-sm w-28">{c.city}</div>
-                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full bg-red-500" style={{ width: `${c.completion}%` }} />
+        ) : (
+          campaigns.map(c => {
+            const completionPct = c.totalTasks ? Math.round(((c.completed || 0) / c.totalTasks) * 100) : 0;
+            return (
+              <Card key={c.id} className="p-6 hover:shadow-sm transition">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                      {(c.brand || 'CG').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-slate-900 text-lg">{c.title}</h3>
+                        <StatusBadge status={c.status} />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">{c.brand} · {c.mediaType} · {c.city}</p>
+                    </div>
                   </div>
-                  <div className="text-xs font-semibold w-20 text-right">{c.tasks.toLocaleString()} tasks</div>
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      disabled={downloading === `${c.id}-pdf`}
+                      onClick={() => download(c.id, 'pdf', c.title)}
+                    >
+                      {downloading === `${c.id}-pdf` ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+                      Download PDF
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={downloading === `${c.id}-excel`}
+                      onClick={() => download(c.id, 'excel', c.title)}
+                    >
+                      {downloading === `${c.id}-excel` ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 mr-1.5" />}
+                      Download Excel
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-2 mt-6">
-            <Button className="bg-red-600 hover:bg-red-700 text-white" disabled={downloading === `${campaigns[0].id}-pdf`} onClick={() => download(campaigns[0].id, 'pdf', campaigns[0].title)}>
-              {downloading === `${campaigns[0].id}-pdf` ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />} Download PDF
-            </Button>
-            <Button variant="outline" onClick={() => download(campaigns[0].id, 'excel', campaigns[0].title)}>
-              <FileSpreadsheet className="h-4 w-4 mr-1" /> Download Excel
-            </Button>
-            <Button variant="outline"><Share2 className="h-4 w-4 mr-1" /> Share Link</Button>
-          </div>
-        </Card>
-      )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 mb-4">
+                  <div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wide">Total Units</div>
+                    <div className="text-xl font-bold text-slate-900 mt-0.5">{c.totalTasks || 0}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wide">Completed</div>
+                    <div className="text-xl font-bold text-emerald-600 mt-0.5">{c.completed || 0}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wide">Completion Rate</div>
+                    <div className="text-xl font-bold text-slate-900 mt-0.5">{completionPct}%</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wide">Flagged</div>
+                    <div className={`text-xl font-bold mt-0.5 ${c.flagged > 0 ? 'text-rose-600' : 'text-slate-700'}`}>
+                      {c.flagged || 0}
+                    </div>
+                  </div>
+                </div>
+
+                <ProgressBar value={c.completed || 0} max={c.totalTasks || 1} color={c.status === 'completed' ? 'bg-emerald-500' : 'bg-red-600'} />
+              </Card>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
