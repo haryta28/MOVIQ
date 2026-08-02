@@ -23,6 +23,12 @@ async def auth_login(request: Request, body: LoginRequest):
     user = await db.users.find_one({"email": body.email.lower()})
     if not user or not pwd_ctx.verify(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    # Block access for suspended or deleted accounts
+    if user.get("status") in ("suspended", "deleted"):
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been suspended. Please contact your administrator."
+        )
     user.pop("password_hash", None)
     user = _clean(user)
     return {"token": create_jwt(user), "user": user}

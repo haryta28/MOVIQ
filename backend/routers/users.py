@@ -1,5 +1,7 @@
 """User list and CRUD endpoints — filtered by role query param and agencyId constraints."""
 import uuid
+import secrets
+import string
 from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,8 +11,21 @@ from core.auth import get_current_user, pwd_ctx
 from core.db import db
 from core.helpers import _clean, _clean_many
 from core.mail import send_invite_email
+from core.whatsapp import send_text
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+def _generate_temp_password(length: int = 10) -> str:
+    """Generate a secure random password with letters, digits, and a symbol."""
+    alphabet = string.ascii_letters + string.digits + "!@#$&"
+    while True:
+        pwd = ''.join(secrets.choice(alphabet) for _ in range(length))
+        # Ensure at least one uppercase, one digit, one symbol
+        if (any(c.isupper() for c in pwd)
+                and any(c.isdigit() for c in pwd)
+                and any(c in '!@#$&' for c in pwd)):
+            return pwd
 
 
 class UserCreate(BaseModel):
@@ -130,20 +145,39 @@ async def create_user(body: UserCreate, user: Dict = Depends(get_current_user)):
         return _clean(doc)
         
     elif role in ("admin", "agency"):
+        temp_password = _generate_temp_password()
         doc = {
             "id": new_id,
             "name": body.name,
             "email": body.email.lower(),
+            "phone": body.phone or "",
             "role": role,
             "status": "active",
-            "password_hash": pwd_ctx.hash("demo1234"),
+            "password_hash": pwd_ctx.hash(temp_password),
         }
         if role == "agency":
             doc["agencyId"] = body.agencyId
         await db.users.insert_one(doc)
+        # Send WhatsApp invite if phone number is provided and WATI is configured
+        if body.phone:
+            role_labels = {"admin": "Platform Admin", "agency": "Agency Head", "supervisor": "Supervisor", "field": "Field Executive"}
+            msg = (
+                f"Hi {body.name}! 👋\n\n"
+                f"You've been invited to the MOVIQ Field Operations Platform as *{role_labels.get(role, role)}*.\n\n"
+                f"🔑 Login: moviq-bwz.vercel.app\n"
+                f"📧 Email: {body.email.lower()}\n"
+                f"🔐 Password: {temp_password}\n\n"
+                f"Please change your password after first login via Settings."
+            )
+            try:
+                send_text(body.phone, msg)
+            except Exception:
+                pass  # Non-fatal: credentials are shown in the UI
         if body.email:
             await send_invite_email(body.name, body.email, role)
-        return _clean(doc)
+        cleaned = _clean(doc)
+        cleaned["tempPassword"] = temp_password  # returned ONCE for admin to copy
+        return cleaned
         
     raise HTTPException(status_code=400, detail="Invalid role specified")
 

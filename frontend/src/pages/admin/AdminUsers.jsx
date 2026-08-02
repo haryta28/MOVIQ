@@ -3,7 +3,7 @@ import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader, StatusBadge } from '../../components/Shared';
-import { Plus, Search, Shield, Building2, UserCog, User, X } from 'lucide-react';
+import { Plus, Search, Shield, Building2, UserCog, User, X, Copy, Check, Phone } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
@@ -12,12 +12,55 @@ import { toast } from '../../hooks/use-toast';
 import useParallelApi from '../../hooks/useParallelApi';
 import api from '../../api';
 
+// ── Credentials Modal ─────────────────────────────────────────────────────────
+function CredentialsModal({ creds, onClose }) {
+  const [copied, setCopied] = useState(false);
+  if (!creds) return null;
+  const copyAll = () => {
+    const text = `MOVIQ Login Credentials\nName: ${creds.name}\nLogin: moviq-bwz.vercel.app\nEmail: ${creds.email}\nPassword: ${creds.password}\n\nPlease change password after first login.`;
+    navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+  return (
+    <Dialog open={!!creds} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-700">
+            <Check className="h-5 w-5 bg-emerald-100 rounded-full p-0.5" />
+            User Created — Credentials Ready
+          </DialogTitle>
+        </DialogHeader>
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 font-mono text-sm space-y-2">
+          <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-semibold">{creds.name}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Login URL</span><span className="text-indigo-600">moviq-bwz.vercel.app</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Email</span><span className="font-semibold">{creds.email}</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Password</span><span className="font-bold text-rose-600 tracking-widest">{creds.password}</span></div>
+        </div>
+        {creds.sentViaWhatsApp && (
+          <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+            <Phone className="h-4 w-4 shrink-0" />
+            Credentials sent to {creds.phone} via WhatsApp
+          </div>
+        )}
+        <p className="text-xs text-slate-500">Shown <strong>only once</strong>. Share securely with the user.</p>
+        <div className="flex gap-2">
+          <Button className="flex-1" variant="outline" onClick={copyAll}>
+            {copied ? <Check className="h-4 w-4 mr-2 text-emerald-600" /> : <Copy className="h-4 w-4 mr-2" />}
+            {copied ? 'Copied!' : 'Copy credentials'}
+          </Button>
+          <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={onClose}>Done</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function AdminUsers() {
   const [q, setQ] = useState('');
   const [tab, setTab] = useState('admin');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null); // For editing
+  const [newUserCreds, setNewUserCreds] = useState(null); // Credentials modal after creation
 
   // Fetch all users, supervisors, and agencies
   const { results } = useParallelApi([
@@ -55,11 +98,22 @@ export default function AdminUsers() {
       return;
     }
     try {
-      await api.post('/users', inviteForm);
-      toast({ title: '🎉 User invited', description: `${inviteForm.name} was successfully created.` });
+      const r = await api.post('/users', inviteForm);
       setShowInviteModal(false);
       setInviteForm({ name: '', role: 'admin', email: '', phone: '', city: '', supervisor: '', agencyId: '' });
-      window.location.reload();
+      // Show credentials if a temp password was generated (admin/agency roles)
+      if (r.data.tempPassword) {
+        setNewUserCreds({
+          name: inviteForm.name,
+          email: inviteForm.email,
+          password: r.data.tempPassword,
+          phone: inviteForm.phone || null,
+          sentViaWhatsApp: !!inviteForm.phone && ['admin', 'agency'].includes(inviteForm.role),
+        });
+      } else {
+        toast({ title: '🎉 User created', description: `${inviteForm.name} has been added.` });
+        window.location.reload();
+      }
     } catch (err) {
       toast({ title: 'Invitation failed', description: err?.response?.data?.detail || 'Try again.' });
     }
@@ -134,10 +188,21 @@ export default function AdminUsers() {
                 )}
 
                 {inviteForm.role !== 'field' && (
-                  <div>
-                    <Label>Email *</Label>
-                    <Input type="email" value={inviteForm.email} onChange={e => setInviteForm({...inviteForm, email: e.target.value})} className="mt-1" placeholder="user@moviq.in" required />
-                  </div>
+                  <>
+                    <div>
+                      <Label>Email *</Label>
+                      <Input type="email" value={inviteForm.email} onChange={e => setInviteForm({...inviteForm, email: e.target.value})} className="mt-1" placeholder="user@moviq.in" required />
+                    </div>
+                    {['admin', 'agency'].includes(inviteForm.role) && (
+                      <div>
+                        <Label className="flex items-center gap-1">
+                          Phone <Phone className="h-3 w-3 text-green-600" />
+                          <span className="text-xs font-normal text-slate-400 ml-1">for WhatsApp invite</span>
+                        </Label>
+                        <Input value={inviteForm.phone} onChange={e => setInviteForm({...inviteForm, phone: e.target.value})} className="mt-1" placeholder="+919876543210" />
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {inviteForm.role === 'field' && (
@@ -273,6 +338,9 @@ export default function AdminUsers() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Credentials Modal after user creation */}
+      <CredentialsModal creds={newUserCreds} onClose={() => { setNewUserCreds(null); window.location.reload(); }} />
     </div>
   );
 }
