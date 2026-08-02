@@ -39,7 +39,9 @@ export default function AgencyOverview() {
           <KpiCard label="Active campaigns" value={active} icon={Megaphone} delta={8} accent="indigo" />
         </Link>
         <KpiCard label="Tasks completed" value={`${completed}/${total}`} icon={ListChecks} delta={15} accent="blue" />
-        <KpiCard label="Field executives" value={team.length} icon={Users} delta={4} accent="emerald" />
+        <Link to="/agency/team" className="block transition hover:opacity-95">
+          <KpiCard label="Field executives" value={team.length} icon={Users} delta={4} accent="emerald" />
+        </Link>
         <Link to="/agency/proofs" className="block transition hover:opacity-95">
           <KpiCard label="Photos submitted" value={photosTotal} icon={Camera} delta={null} accent="violet" />
         </Link>

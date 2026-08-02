@@ -28,7 +28,6 @@ export default function AgencyTasks() {
       <PageHeader
         title="Tasks"
         description="Track every unit-level task assigned to your field team."
-        actions={<Button variant="outline"><Filter className="h-4 w-4 mr-1" /> Bulk assign</Button>}
       />
 
       <Card className="p-4">
@@ -62,7 +61,6 @@ export default function AgencyTasks() {
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-100">
                 <th className="py-3 px-3 font-medium">Campaign</th>
-                <th className="py-3 px-3 font-medium">Unit</th>
                 <th className="py-3 px-3 font-medium">City</th>
                 <th className="py-3 px-3 font-medium">Media</th>
                 <th className="py-3 px-3 font-medium">Executive</th>
@@ -75,7 +73,6 @@ export default function AgencyTasks() {
               {filtered.slice(0, 30).map(t => (
                 <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(t)}>
                   <td className="py-3 px-3 font-medium text-slate-900">{t.campaignTitle || 'Unknown Campaign'}</td>
-                  <td className="py-3 px-3 font-medium text-slate-900">{t.unitCode}</td>
                   <td className="py-3 px-3"><span className="inline-flex items-center gap-1 text-slate-700"><MapPin className="h-3 w-3 text-slate-400" />{t.city}</span></td>
                   <td className="py-3 px-3 text-slate-700">{t.mediaType}</td>
                   <td className="py-3 px-3 text-slate-700">{t.assignedTo}</td>

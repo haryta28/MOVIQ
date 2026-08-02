@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -13,6 +13,7 @@ import api from '../../api';
 import useParallelApi from '../../hooks/useParallelApi';
 
 export default function AgencyCampaigns() {
+  const navigate = useNavigate();
   const { results, refetch } = useParallelApi(['/campaigns', '/brands', '/media-types']);
   const [fetchedCampaigns = [], brands = [], mediaTypes = []] = results;
   const [localCampaigns, setLocalCampaigns] = useState(null); // null = use fetched
@@ -124,7 +125,11 @@ export default function AgencyCampaigns() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {campaigns.map(c => (
-          <Card key={c.id} className="p-5 hover:shadow-md transition flex flex-col justify-between">
+          <Card
+            key={c.id}
+            className="p-5 hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between cursor-pointer"
+            onClick={() => navigate(`/agency/campaigns/${c.id}`)}
+          >
             <div>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -132,9 +137,9 @@ export default function AgencyCampaigns() {
                     {(c.brand||'').slice(0,2).toUpperCase()}
                   </div>
                   <div>
-                    <Link to={`/agency/campaigns/${c.id}`} className="font-semibold text-slate-900 hover:text-red-600 transition">
+                    <div className="font-semibold text-slate-900 hover:text-red-600 transition">
                       {c.title}
-                    </Link>
+                    </div>
                     <div className="text-xs text-slate-500">{c.brand}</div>
                   </div>
                 </div>
@@ -151,10 +156,18 @@ export default function AgencyCampaigns() {
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
               <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{c.startDate} → {c.endDate}</span>
               <div className="flex gap-2">
-                <Link to={`/agency/campaigns/${c.id}`}>
+                <Link to={`/agency/campaigns/${c.id}`} onClick={e => e.stopPropagation()}>
                   <Button size="sm" variant="ghost" className="text-slate-600">Details</Button>
                 </Link>
-                <Button size="sm" variant="ghost" className="text-red-600" onClick={() => setEditingCampaign(c)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingCampaign(c);
+                  }}
+                >
                   <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                 </Button>
               </div>
