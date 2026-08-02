@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -307,7 +307,9 @@ export default function AdminAgencies() {
                           {a.name.slice(0,2).toUpperCase()}
                         </div>
                         <div>
-                          <div className={`font-medium ${isDeleted ? 'line-through text-slate-400' : 'text-slate-900'}`}>{a.name}</div>
+                          <Link to={`/admin/agencies/${a.id}`} className={`font-medium hover:underline ${isDeleted ? 'line-through text-slate-400' : 'text-slate-900 hover:text-red-600'}`}>
+                            {a.name}
+                          </Link>
                           <div className="text-xs text-slate-500">{a.email}</div>
                         </div>
                       </div>

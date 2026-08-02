@@ -15,13 +15,14 @@ const AgencyLayout = lazy(() => import('./layouts/AgencyLayout'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 
 // ── Lazy-loaded pages — admin ─────────────────────────────────────────────────
-const AdminOverview   = lazy(() => import('./pages/admin/AdminOverview'));
-const AdminAgencies   = lazy(() => import('./pages/admin/AdminAgencies'));
-const AdminCampaigns  = lazy(() => import('./pages/admin/AdminCampaigns'));
-const AdminUsers      = lazy(() => import('./pages/admin/AdminUsers'));
-const AdminFraud      = lazy(() => import('./pages/admin/AdminFraud'));
-const AdminAnalytics  = lazy(() => import('./pages/admin/AdminAnalytics'));
-const AdminMediaTypes = lazy(() => import('./pages/admin/AdminMediaTypes'));
+const AdminOverview     = lazy(() => import('./pages/admin/AdminOverview'));
+const AdminAgencies     = lazy(() => import('./pages/admin/AdminAgencies'));
+const AdminAgencyDetail = lazy(() => import('./pages/admin/AdminAgencyDetail'));
+const AdminCampaigns    = lazy(() => import('./pages/admin/AdminCampaigns'));
+const AdminUsers        = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminFraud        = lazy(() => import('./pages/admin/AdminFraud'));
+const AdminAnalytics    = lazy(() => import('./pages/admin/AdminAnalytics'));
+const AdminMediaTypes   = lazy(() => import('./pages/admin/AdminMediaTypes'));
 
 // ── Lazy-loaded pages — agency ────────────────────────────────────────────────
 const AgencyOverview      = lazy(() => import('./pages/agency/AgencyOverview'));
@@ -75,6 +76,7 @@ function App() {
               <Route path="/admin" element={<RequireRole role="admin"><AdminLayout /></RequireRole>}>
                 <Route index              element={<AdminOverview />} />
                 <Route path="agencies"    element={<AdminAgencies />} />
+                <Route path="agencies/:id" element={<AdminAgencyDetail />} />
                 <Route path="campaigns"   element={<AdminCampaigns />} />
                 <Route path="users"       element={<AdminUsers />} />
                 <Route path="fraud"       element={<AdminFraud />} />
