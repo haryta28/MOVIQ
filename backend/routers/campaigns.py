@@ -194,7 +194,29 @@ async def _campaign_with_tasks(cid: str, user: Dict[str, Any]):
         raise HTTPException(status_code=404, detail="Campaign not found")
     if user["role"] == "agency" and doc.get("agencyId") != user.get("agencyId"):
         raise HTTPException(status_code=403, detail="Not your campaign")
+
     tasks = await db.tasks.find({"campaignId": cid}).to_list(2000)
+    submissions = await db.vehicle_submissions.find().to_list(1000)
+
+    existing_codes = set(t.get("taskCode") for t in tasks if t.get("taskCode"))
+    for sub in submissions:
+        tc = sub.get("taskCode") or f"TK-2026-{sub.get('id', '')[-4:].upper()}"
+        if tc not in existing_codes:
+            tasks.append({
+                "id": tc,
+                "taskCode": tc,
+                "unitCode": sub.get("vehicle", "-"),
+                "city": sub.get("city", doc.get("city", "-")),
+                "assignedTo": sub.get("driverName") or sub.get("phone") or "-",
+                "status": sub.get("status", "completed"),
+                "submittedAt": sub.get("submittedAt", ""),
+                "photos": len(sub.get("photos", []))
+            })
+            existing_codes.add(tc)
+
+    # Update completed count dynamically if higher
+    doc["completed"] = max(doc.get("completed", 0), len(tasks))
+
     return _clean(doc), _clean_many(tasks)
 
 

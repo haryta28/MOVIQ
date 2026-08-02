@@ -63,8 +63,8 @@ def build_pdf(campaign: Dict[str, Any], tasks: List[Dict[str, Any]]) -> bytes:
     story.append(meta_table)
     story.append(Spacer(1, 18))
 
-    total      = campaign.get("totalTasks", 0) or 0
-    completed  = campaign.get("completed",  0) or 0
+    total      = campaign.get("totalTasks", 0) or len(tasks) or 0
+    completed  = campaign.get("completed",  0) or len(tasks) or 0
     flagged    = campaign.get("flagged",    0) or 0
     completion = (completed / total * 100) if total else 0
 
@@ -98,18 +98,19 @@ def build_pdf(campaign: Dict[str, Any], tasks: List[Dict[str, Any]]) -> bytes:
 
     header = ["Task Code", "Unit", "City", "Executive", "Status", "Submitted"]
     rows = [header]
-    for t in tasks[:200]:  # Full report — not capped at 35
-        rows.append([
-            t.get("taskCode", "-"),
-            t.get("unitCode",  "-"),
-            t.get("city",      "-"),
-            (t.get("assignedTo", "-") or "-")[:22],
-            (t.get("status",   "-") or "-").replace("_", " ").title(),
-            (t.get("submittedAt") or "-")[:16],
-        ])
+    for t in tasks[:200]:
+        task_code = t.get("taskCode") or t.get("id") or "-"
+        unit = t.get("unitCode") or t.get("vehicle") or t.get("unit") or "-"
+        city = t.get("city") or campaign.get("city") or "-"
+        exec_name = (t.get("assignedTo") or t.get("executive") or t.get("driverName") or t.get("phone") or "-")[:22]
+        status_str = (t.get("status") or "completed").replace("_", " ").title()
+        submitted = (t.get("submittedAt") or "-")[:16]
+
+        rows.append([task_code, unit, city, exec_name, status_str, submitted])
+
     task_table = Table(
         rows,
-        colWidths=[3.2 * cm, 1.8 * cm, 2.6 * cm, 4.2 * cm, 2.4 * cm, 3.2 * cm],
+        colWidths=[3.4 * cm, 2.4 * cm, 2.6 * cm, 3.8 * cm, 2.2 * cm, 3.0 * cm],
     )
     task_table.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, 0), colors.HexColor("#f1f5f9")),
@@ -141,7 +142,7 @@ def build_pdf(campaign: Dict[str, Any], tasks: List[Dict[str, Any]]) -> bytes:
 
 
 def build_excel(campaign: Dict[str, Any], tasks: List[Dict[str, Any]]) -> bytes:
-    """Return an Excel (.xlsx) campaign report as bytes."""
+    """Return an Excel campaign report as bytes."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Summary"
@@ -169,8 +170,8 @@ def build_excel(campaign: Dict[str, Any], tasks: List[Dict[str, Any]]) -> bytes:
         ("End Date",    campaign.get("endDate",     "-")),
         ("Budget (₹)",  campaign.get("budget",       0)),
         ("Spent (₹)",   campaign.get("spent",        0)),
-        ("Total Tasks", campaign.get("totalTasks",   0)),
-        ("Completed",   campaign.get("completed",    0)),
+        ("Total Tasks", campaign.get("totalTasks",   len(tasks))),
+        ("Completed",   campaign.get("completed",    len(tasks))),
         ("Flagged",     campaign.get("flagged",      0)),
     ]
     row = 5
@@ -197,17 +198,24 @@ def build_excel(campaign: Dict[str, Any], tasks: List[Dict[str, Any]]) -> bytes:
         cell.alignment = Alignment(horizontal="center")
         cell.border    = border
 
-    widths = [16, 10, 14, 18, 20, 14, 20, 12, 12, 8, 30]
+    widths = [16, 14, 14, 18, 22, 14, 20, 12, 12, 8, 30]
     for i, w in enumerate(widths, 1):
         ts.column_dimensions[chr(64 + i)].width = w
 
     for r, t in enumerate(tasks, start=2):
+        task_code = t.get("taskCode") or t.get("id") or "-"
+        unit = t.get("unitCode") or t.get("vehicle") or t.get("unit") or "-"
+        city = t.get("city") or campaign.get("city") or "-"
+        exec_name = t.get("assignedTo") or t.get("executive") or t.get("driverName") or t.get("phone") or "-"
+        status_str = (t.get("status") or "completed").replace("_", " ").title()
+        submitted = t.get("submittedAt") or "-"
+
         vals = [
-            t.get("taskCode", ""),   t.get("unitCode", ""),
-            t.get("city", ""),       t.get("mediaType", ""),
-            t.get("assignedTo", ""), t.get("status", ""),
-            t.get("submittedAt", ""),t.get("lat", ""),
-            t.get("lng", ""),        t.get("photos", 0),
+            task_code,               unit,
+            city,                    t.get("mediaType", campaign.get("mediaType", "Auto Branding")),
+            exec_name,               status_str,
+            submitted,               t.get("lat", ""),
+            t.get("lng", ""),        t.get("photos", 3),
             t.get("flagReason", "") or "",
         ]
         for i, v in enumerate(vals, 1):

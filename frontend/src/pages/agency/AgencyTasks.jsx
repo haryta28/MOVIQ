@@ -60,9 +60,10 @@ export default function AgencyTasks() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-100">
+                <th className="py-3 px-3 font-medium">Task Code</th>
+                <th className="py-3 px-3 font-medium">Unit / Vehicle</th>
                 <th className="py-3 px-3 font-medium">Campaign</th>
                 <th className="py-3 px-3 font-medium">City</th>
-                <th className="py-3 px-3 font-medium">Media</th>
                 <th className="py-3 px-3 font-medium">Executive</th>
                 <th className="py-3 px-3 font-medium">Submitted</th>
                 <th className="py-3 px-3 font-medium">Status</th>
@@ -70,17 +71,27 @@ export default function AgencyTasks() {
               </tr>
             </thead>
             <tbody>
-              {filtered.slice(0, 30).map(t => (
+              {filtered.slice(0, 50).map(t => (
                 <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => setSelected(t)}>
-                  <td className="py-3 px-3 font-medium text-slate-900">{t.campaignTitle || 'Unknown Campaign'}</td>
+                  <td className="py-3 px-3 font-mono font-bold text-red-600">{t.taskCode || t.id}</td>
+                  <td className="py-3 px-3 font-mono font-semibold text-slate-900">{t.unit || t.vehicle || t.unitCode || '—'}</td>
+                  <td className="py-3 px-3 font-medium text-slate-800">{t.campaignTitle || 'General Execution'}</td>
                   <td className="py-3 px-3"><span className="inline-flex items-center gap-1 text-slate-700"><MapPin className="h-3 w-3 text-slate-400" />{t.city}</span></td>
-                  <td className="py-3 px-3 text-slate-700">{t.mediaType}</td>
-                  <td className="py-3 px-3 text-slate-700">{t.assignedTo}</td>
-                  <td className="py-3 px-3 text-xs text-slate-500">{t.submittedAt || '—'}</td>
-                  <td className="py-3 px-3"><StatusBadge status={t.status} /></td>
+                  <td className="py-3 px-3 text-slate-700">{t.executive || t.assignedTo || t.driverName || 'Field Exec'}</td>
+                  <td className="py-3 px-3 text-xs text-slate-500">
+                    {t.submittedAt ? new Date(t.submittedAt).toLocaleDateString('en-IN') : '—'}
+                  </td>
+                  <td className="py-3 px-3"><StatusBadge status={t.status || 'completed'} /></td>
                   <td className="py-3 px-3"><ChevronRight className="h-4 w-4 text-slate-400" /></td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-slate-500">
+                    No task records found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

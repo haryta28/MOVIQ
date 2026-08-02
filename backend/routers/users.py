@@ -53,7 +53,31 @@ async def list_users(role: Optional[str] = None, user: Dict = Depends(get_curren
     # 1. Admin user: global access
     if user["role"] == "admin":
         if role == "field":
-            return _clean_many(await db.field_executives.find().to_list(1000))
+            execs = await db.field_executives.find().to_list(1000)
+            field_users = await db.users.find({"role": "field"}).to_list(1000)
+            all_field = {}
+            for e in execs:
+                all_field[e.get("phone") or e.get("id")] = e
+            for u in field_users:
+                key = u.get("phone") or u.get("id")
+                if key not in all_field:
+                    all_field[key] = u
+
+            res = []
+            for e in all_field.values():
+                phone = e.get("phone", "")
+                name = e.get("name", "")
+                sub_count = 0
+                if phone:
+                    sub_count += await db.vehicle_submissions.count_documents({"$or": [{"phone": phone}, {"driverPhone": phone}]})
+                if sub_count == 0 and name:
+                    sub_count = await db.vehicle_submissions.count_documents({"driverName": name})
+                
+                cleaned = _clean(e)
+                cleaned["tasksDone"] = max(e.get("tasksDone", 0), sub_count)
+                cleaned["avgQuality"] = e.get("avgQuality") if (e.get("avgQuality") is not None and str(e.get("avgQuality")) != "undefined") else 100
+                res.append(cleaned)
+            return res
         if role == "supervisor":
             return _clean_many(await db.supervisors.find().to_list(1000))
         if role == "agency":

@@ -265,7 +265,15 @@ export default function AdminUsers() {
           <UserTable rows={filter(rows.supervisor).map(s => ({ ...s, team: `${s.teamSize} executives`, status: 'active' }))} cols={['name', 'email', 'city', 'team', 'status']} onEdit={handleOpenEdit} />
         </TabsContent>
         <TabsContent value="field" className="mt-4">
-          <UserTable rows={filter(rows.field).map(f => ({ ...f, quality: `${f.avgQuality}%` }))} cols={['name', 'phone', 'city', 'tasksDone', 'quality', 'status']} onEdit={handleOpenEdit} />
+          <UserTable
+            rows={filter(rows.field).map(f => ({
+              ...f,
+              tasksDone: f.tasksDone || 0,
+              quality: `${f.avgQuality !== undefined && f.avgQuality !== null && String(f.avgQuality) !== 'undefined' ? f.avgQuality : 100}%`
+            }))}
+            cols={['name', 'phone', 'city', 'tasksDone', 'quality', 'status']}
+            onEdit={handleOpenEdit}
+          />
         </TabsContent>
       </Tabs>
 

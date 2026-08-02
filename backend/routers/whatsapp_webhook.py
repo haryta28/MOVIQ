@@ -271,24 +271,52 @@ async def receive_webhook(request: Request):
                     f"Move to the {next_label.lower()} and send the photo:"
                 )
             else:
-                # All 3 photos done — save submission
+                # All 3 photos done — save submission & generate unique Task Code
+                task_code = f"TK-2026-{uuid.uuid4().hex[:4].upper()}"
                 doc = {
                     "id":          f"vs_{uuid.uuid4().hex[:10]}",
+                    "taskCode":    task_code,
                     "vehicle":     state.get("vehicle", ""),
                     "driverName":  state.get("driver_name", ""),
                     "driverPhone": state.get("driver_phone", ""),
                     "photos":      photos,
                     "gps":         state.get("gps") or {"lat": 0, "lng": 0},
                     "submittedAt": datetime.now(timezone.utc).isoformat(),
-                    "status":      "submitted",
+                    "status":      "completed",
                     "fraudCheck":  "passed",
                     "source":      "whatsapp",
                     "phone":       phone,
                 }
                 await db.vehicle_submissions.insert_one({**doc})
+
+                # Sync into db.tasks for task tracking and reports
+                task_doc = {
+                    "id":          task_code,
+                    "taskCode":    task_code,
+                    "unit":        doc["vehicle"],
+                    "vehicle":     doc["vehicle"],
+                    "executive":   doc["driverName"],
+                    "phone":       phone,
+                    "campaignId":  state.get("campaignId", "c1"),
+                    "city":        state.get("city", "Bengaluru"),
+                    "status":      "completed",
+                    "submittedAt": doc["submittedAt"],
+                }
+                await db.tasks.insert_one(task_doc)
+
+                # Increment tasksDone for the executive in db.field_executives and db.users
+                await db.field_executives.update_many(
+                    {"$or": [{"phone": phone}, {"name": doc["driverName"]}]},
+                    {"$inc": {"tasksDone": 1}}
+                )
+                await db.users.update_many(
+                    {"$or": [{"phone": phone}, {"name": doc["driverName"]}]},
+                    {"$inc": {"tasksDone": 1}}
+                )
+
                 await create_notification(
                     "New vehicle proof via WhatsApp",
-                    f"{doc['vehicle']} submitted by {doc['driverName']}",
+                    f"[{task_code}] {doc['vehicle']} submitted by {doc['driverName']}",
                     "success",
                 )
                 await _save_state(phone, {"step": "done", "photos": [], "gps": None})
