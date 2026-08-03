@@ -2,6 +2,7 @@
 import uuid
 import secrets
 import string
+import logging
 from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,7 +12,8 @@ from core.auth import get_current_user, pwd_ctx
 from core.db import db
 from core.helpers import _clean, _clean_many
 from core.mail import send_invite_email
-from core.whatsapp import send_text, send_user_invite_whatsapp
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -182,20 +184,19 @@ async def create_user(body: UserCreate, user: Dict = Depends(get_current_user)):
         if role == "agency":
             doc["agencyId"] = body.agencyId
         await db.users.insert_one(doc)
-        # Send WhatsApp invite if phone number is provided and WATI is configured
-        if body.phone:
+
+        # Send invite email via Resend (primary — includes temp password)
+        if body.email:
             try:
-                send_user_invite_whatsapp(
-                    to=body.phone,
+                await send_invite_email(
                     name=body.name,
-                    role=role,
                     email=body.email.lower(),
+                    role=role,
                     password=temp_password,
                 )
-            except Exception:
-                pass  # Non-fatal: credentials are shown in the UI
-        if body.email:
-            await send_invite_email(body.name, body.email, role)
+            except Exception as e:
+                logger.warning("Email invite failed (non-fatal): %s", str(e))
+
         cleaned = _clean(doc)
         cleaned["tempPassword"] = temp_password  # returned ONCE for admin to copy
         return cleaned
