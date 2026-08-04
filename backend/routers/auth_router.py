@@ -1,5 +1,5 @@
 """Auth endpoints — login (rate-limited) and current-user."""
-from typing import Dict
+from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
@@ -82,7 +82,6 @@ class ChangePasswordRequest(BaseModel):
     newPassword: str
 
 
-from typing import Optional
 from core.mail import send_password_changed_email
 
 

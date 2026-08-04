@@ -12,6 +12,16 @@ import { toast } from '../../hooks/use-toast';
 import api from '../../api';
 import useParallelApi from '../../hooks/useParallelApi';
 
+const PREDEFINED_MEDIA_TYPES = [
+  'Cab Branding',
+  'Auto Branding',
+  'Bus Branding',
+  'TATA ACE Branding',
+  'Metro Branding',
+  'Train Branding',
+  'Hoarding'
+];
+
 export default function AgencyCampaigns() {
   const navigate = useNavigate();
   const { results, refetch } = useParallelApi(['/campaigns', '/brands', '/media-types']);
@@ -105,7 +115,11 @@ export default function AgencyCampaigns() {
                   <Label>Media type</Label>
                   <Select value={form.mediaType} onValueChange={v => setForm({...form, mediaType: v})}>
                     <SelectTrigger className="mt-1"><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>{mediaTypes.map(m => <SelectItem key={m.key} value={m.label}>{m.label}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      {PREDEFINED_MEDIA_TYPES.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div><Label>City</Label><Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} className="mt-1" placeholder="Bengaluru" /></div>
@@ -202,7 +216,11 @@ export default function AgencyCampaigns() {
                 <Label>Media type</Label>
                 <Select value={editForm.mediaType} onValueChange={v => setEditForm({...editForm, mediaType: v})}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{mediaTypes.map(m => <SelectItem key={m.key} value={m.label}>{m.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {PREDEFINED_MEDIA_TYPES.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div><Label>City</Label><Input value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} className="mt-1" /></div>

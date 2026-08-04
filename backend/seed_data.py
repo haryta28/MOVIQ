@@ -19,18 +19,13 @@ BRANDS = [
 ]
 
 MEDIA_TYPES = [
-    {"key": "auto", "label": "Auto Branding", "category": "Transit"},
-    {"key": "bus", "label": "Bus Branding", "category": "Transit"},
-    {"key": "cab", "label": "Cab Branding", "category": "Transit"},
-    {"key": "metro", "label": "Metro Branding", "category": "Transit"},
-    {"key": "train", "label": "Train Branding", "category": "Transit"},
-    {"key": "billboard", "label": "Billboard / Hoarding", "category": "Outdoor"},
-    {"key": "wall", "label": "Wall Painting", "category": "Outdoor"},
-    {"key": "pole", "label": "Pole Board", "category": "Outdoor"},
-    {"key": "mall", "label": "Mall Branding", "category": "Outdoor"},
-    {"key": "shop", "label": "Shop Name Board", "category": "Community"},
-    {"key": "society", "label": "Society Branding", "category": "Community"},
-    {"key": "retail", "label": "Retail Activation", "category": "Retail"},
+    {"key": "cab_branding", "label": "Cab Branding", "category": "Transit"},
+    {"key": "auto_branding", "label": "Auto Branding", "category": "Transit"},
+    {"key": "bus_branding", "label": "Bus Branding", "category": "Transit"},
+    {"key": "tata_ace_branding", "label": "TATA ACE Branding", "category": "Transit"},
+    {"key": "metro_branding", "label": "Metro Branding", "category": "Transit"},
+    {"key": "train_branding", "label": "Train Branding", "category": "Transit"},
+    {"key": "hoarding", "label": "Hoarding", "category": "Outdoor"},
 ]
 
 CAMPAIGNS = [

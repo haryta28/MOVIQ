@@ -23,6 +23,8 @@ export default function useParallelApi(endpoints) {
   // Use a stable key so the effect re-runs only when endpoints actually change
   const key = endpoints.join('|');
 
+  const [trigger, setTrigger] = useState(0);
+
   useEffect(() => {
     if (!endpoints || endpoints.length === 0) { setLoading(false); return; }
     let cancelled = false;
@@ -41,7 +43,9 @@ export default function useParallelApi(endpoints) {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, trigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { results, loading, error };
+  const refetch = () => setTrigger(t => t + 1);
+
+  return { results, loading, error, refetch };
 }

@@ -13,6 +13,16 @@ import useParallelApi from '../../hooks/useParallelApi';
 import api from '../../api';
 
 // ── Create Campaign Modal ──────────────────────────────────────────────────────
+const PREDEFINED_MEDIA_TYPES = [
+  'Cab Branding',
+  'Auto Branding',
+  'Bus Branding',
+  'TATA ACE Branding',
+  'Metro Branding',
+  'Train Branding',
+  'Hoarding'
+];
+
 const BLANK_FORM = {
   title: '', brand: '', brandId: '', mediaType: '', city: '',
   totalTasks: '', budget: '', startDate: '', endDate: '', agencyId: ''
@@ -113,7 +123,18 @@ function NewCampaignModal({ open, onClose, onCreated, agencies = [] }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Brand ID"         name="brandId"   placeholder="e.g. b1 (optional)"          value={form.brandId}   onChange={set('brandId')}   error={errors.brandId} />
-            <Field label="Media Type *"     name="mediaType" placeholder="e.g. Auto Branding"          value={form.mediaType} onChange={set('mediaType')} error={errors.mediaType} />
+            <div>
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Media Type *</Label>
+              <Select value={form.mediaType} onValueChange={v => setForm(f => ({ ...f, mediaType: v }))}>
+                <SelectTrigger className="mt-1 bg-slate-50 border-slate-200"><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  {PREDEFINED_MEDIA_TYPES.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.mediaType && <p className="text-xs text-rose-500 mt-1">{errors.mediaType}</p>}
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="City *"           name="city"       placeholder="e.g. Bengaluru"             value={form.city}       onChange={set('city')}       error={errors.city} />
@@ -269,7 +290,18 @@ function EditCampaignModal({ open, campaign, onClose, onUpdated, agencies = [] }
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Brand ID"         name="brandId" placeholder="e.g. b1"                   value={form.brandId} onChange={set('brandId')} error={errors.brandId} />
-            <Field label="Media Type *"     name="mediaType" placeholder="e.g. Auto Branding"       value={form.mediaType} onChange={set('mediaType')} error={errors.mediaType} />
+            <div>
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Media Type *</Label>
+              <Select value={form.mediaType} onValueChange={v => setForm(f => ({ ...f, mediaType: v }))}>
+                <SelectTrigger className="mt-1 bg-slate-50 border-slate-200"><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  {PREDEFINED_MEDIA_TYPES.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.mediaType && <p className="text-xs text-rose-500 mt-1">{errors.mediaType}</p>}
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="City *"           name="city" placeholder="e.g. Bengaluru"               value={form.city} onChange={set('city')} error={errors.city} />
