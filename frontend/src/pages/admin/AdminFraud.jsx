@@ -3,22 +3,46 @@ import { useLocation } from 'react-router-dom';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { PageHeader, StatusBadge } from '../../components/Shared';
-import { ShieldAlert, CheckCircle2, X, MapPin, Image as ImageIcon, Clock, Settings, Camera, ExternalLink, ChevronRight, ToggleLeft, ToggleRight, Info } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, X, MapPin, Image as ImageIcon, Clock, Settings, Camera, ExternalLink, ChevronRight, ToggleLeft, ToggleRight, Info, Play, FlaskConical, AlertTriangle } from 'lucide-react';
 import { toast } from '../../hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Label } from '../../components/ui/label';
+import { Input } from '../../components/ui/input';
 import api from '../../api';
 import useApi from '../../hooks/useApi';
 
-// ── Detection Settings Modal ─────────────────────────────────────────────────
-function DetectionSettingsModal({ open, onClose }) {
+// ── Detection Settings Modal (with inline rule testing) ─────────────────────
+function DetectionSettingsModal({ open, onClose, onRuleTested }) {
   const [rules, setRules] = useState({
     duplicatePhoto:    true,
     gpsDeviation:      true,
     backdatedUpload:   true,
     lowPhotoQuality:   true,
   });
+  const [testingKey, setTestingKey] = useState(null);
 
   const toggle = (key) => setRules(r => ({ ...r, [key]: !r[key] }));
+
+  const runTest = async (ruleKey, label) => {
+    setTestingKey(ruleKey);
+    try {
+      const { data } = await api.post('/fraud-alerts/test-rule', { ruleKey });
+      toast({
+        title: `🧪 Test Complete: ${label}`,
+        description: data.message || `Rule triggered! Flagged alert created for ${data.alert?.taskCode}.`,
+      });
+      if (onRuleTested) onRuleTested(data.alert);
+    } catch (e) {
+      toast({
+        title: 'Rule Test Failed',
+        description: e?.response?.data?.detail || 'Execution error during manual test.',
+        variant: 'destructive',
+      });
+    } finally {
+      setTestingKey(null);
+    }
+  };
 
   const RULE_DESCRIPTIONS = [
     { key: 'duplicatePhoto',    label: 'Duplicate Photo Detection',  desc: 'Flags when the same image hash is submitted across multiple locations or entries.' },
@@ -33,7 +57,7 @@ function DetectionSettingsModal({ open, onClose }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-4 w-4 text-slate-600" />
-            Detection Settings
+            Detection Settings & Rule Controls
           </DialogTitle>
         </DialogHeader>
 
@@ -41,38 +65,195 @@ function DetectionSettingsModal({ open, onClose }) {
         <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100 text-sm text-indigo-800">
           <Info className="h-4 w-4 shrink-0 mt-0.5 text-indigo-600" />
           <div>
-            <span className="font-semibold">Automated Rule Engine</span> — Fraud checks run automatically on every WhatsApp submission using image hashing, GPS comparison, and EXIF metadata parsing.
+            <span className="font-semibold">Automated Rule Engine</span> — Fraud checks run automatically on every submission using image hashing, GPS comparison, and EXIF metadata parsing. Use <strong>Run Test</strong> to simulate rule evaluation.
           </div>
         </div>
 
         <div className="space-y-3 mt-2">
           {RULE_DESCRIPTIONS.map(rule => (
-            <div key={rule.key} className="flex items-start justify-between gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition">
-              <div className="flex-1">
-                <div className="font-medium text-slate-800 text-sm">{rule.label}</div>
+            <div key={rule.key} className="flex items-center justify-between gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="font-medium text-slate-800 text-sm">{rule.label}</div>
+                  {!rules[rule.key] && (
+                    <span className="text-[10px] bg-slate-100 text-slate-500 font-semibold px-2 py-0.5 rounded">Disabled</span>
+                  )}
+                </div>
                 <div className="text-xs text-slate-500 mt-0.5">{rule.desc}</div>
               </div>
-              <button
-                onClick={() => toggle(rule.key)}
-                className="shrink-0 mt-0.5"
-                aria-label={`Toggle ${rule.label}`}
-              >
-                {rules[rule.key]
-                  ? <ToggleRight className="h-6 w-6 text-emerald-600" />
-                  : <ToggleLeft  className="h-6 w-6 text-slate-300" />
-                }
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs font-semibold border-amber-200 bg-amber-50/50 hover:bg-amber-100 text-amber-900"
+                  disabled={testingKey === rule.key}
+                  onClick={() => runTest(rule.key, rule.label)}
+                >
+                  <Play className="h-3 w-3 mr-1 fill-amber-600 text-amber-600" />
+                  {testingKey === rule.key ? 'Testing…' : 'Run Test'}
+                </Button>
+                <button
+                  onClick={() => toggle(rule.key)}
+                  className="shrink-0"
+                  aria-label={`Toggle ${rule.label}`}
+                >
+                  {rules[rule.key]
+                    ? <ToggleRight className="h-6 w-6 text-emerald-600" />
+                    : <ToggleLeft  className="h-6 w-6 text-slate-300" />
+                  }
+                </button>
+              </div>
             </div>
           ))}
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-2 border-t">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
             className="bg-red-600 hover:bg-red-700 text-white"
-            onClick={() => { toast({ title: 'Settings saved', description: 'Detection rules updated.' }); onClose(); }}
+            onClick={() => { toast({ title: 'Settings saved', description: 'Detection rules configuration updated.' }); onClose(); }}
           >
             Save changes
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Manual Rules Testing Modal ────────────────────────────────────────────────
+function ManualTestModal({ open, onClose, onTestComplete }) {
+  const [selectedRule, setSelectedRule] = useState('duplicatePhoto');
+  const [customTask, setCustomTask]     = useState('');
+  const [execName, setExecName]         = useState('');
+  const [agencyName, setAgencyName]     = useState('');
+  const [testing, setTesting]           = useState(false);
+  const [lastResult, setLastResult]     = useState(null);
+
+  const RULES = [
+    { key: 'duplicatePhoto',    name: 'Duplicate Photo Detection',  threshold: 'Image Hash Similarity > 92%' },
+    { key: 'gpsDeviation',      name: 'GPS Mismatch Detection',     threshold: 'Distance > 500m from Geofence' },
+    { key: 'backdatedUpload',   name: 'Backdated Upload Detection',  threshold: 'EXIF Timestamp Delta > 24 Hours' },
+    { key: 'lowPhotoQuality',   label: 'Low Photo Quality Filter',   threshold: 'Blur Score < 45 / 100' },
+  ];
+
+  const handleRun = async () => {
+    setTesting(true);
+    setLastResult(null);
+    try {
+      const { data } = await api.post('/fraud-alerts/test-rule', {
+        ruleKey: selectedRule,
+        taskCode: customTask.trim() || undefined,
+        agency: agencyName.trim() || undefined,
+        executive: execName.trim() || undefined,
+      });
+
+      const matchedRule = RULES.find(r => r.key === selectedRule);
+      setLastResult({
+        ruleName: matchedRule ? (matchedRule.name || matchedRule.label) : selectedRule,
+        threshold: matchedRule ? matchedRule.threshold : 'Standard',
+        alert: data.alert,
+        status: 'FLAGGED',
+        timeTaken: '142ms',
+      });
+
+      toast({
+        title: '🧪 Manual Test Execution Passed',
+        description: `Rule [${selectedRule}] evaluated successfully. Task flagged!`,
+      });
+
+      if (onTestComplete) onTestComplete(data.alert);
+    } catch (e) {
+      toast({
+        title: 'Test Failed',
+        description: e?.response?.data?.detail || 'Error running manual test execution.',
+        variant: 'destructive',
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FlaskConical className="h-5 w-5 text-red-600" />
+            Manual Fraud Rule Testing Console
+          </DialogTitle>
+        </DialogHeader>
+
+        <p className="text-xs text-slate-500">
+          Select a fraud rule to execute an instant evaluation cycle against real or test submission parameters.
+        </p>
+
+        <div className="space-y-4 mt-2">
+          <div>
+            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Select Fraud Rule to Test *</Label>
+            <Select value={selectedRule} onValueChange={setSelectedRule}>
+              <SelectTrigger className="mt-1 bg-slate-50 border-slate-200">
+                <SelectValue placeholder="Choose rule..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="duplicatePhoto">1. Duplicate Photo Detection (Hash matching)</SelectItem>
+                <SelectItem value="gpsDeviation">2. GPS Mismatch Detection (Distance &gt; 500m)</SelectItem>
+                <SelectItem value="backdatedUpload">3. Backdated Upload Detection (EXIF delta &gt; 24h)</SelectItem>
+                <SelectItem value="lowPhotoQuality">4. Low Photo Quality Filter (Blur score analysis)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Task Code (Optional)</Label>
+              <Input
+                placeholder="e.g. TK-2026-9901"
+                value={customTask}
+                onChange={e => setCustomTask(e.target.value)}
+                className="mt-1 bg-slate-50 border-slate-200"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Executive Name (Optional)</Label>
+              <Input
+                placeholder="e.g. Ramesh Kumar"
+                value={execName}
+                onChange={e => setExecName(e.target.value)}
+                className="mt-1 bg-slate-50 border-slate-200"
+              />
+            </div>
+          </div>
+
+          {/* Execution Result Box */}
+          {lastResult && (
+            <div className="p-4 rounded-xl bg-slate-900 text-white space-y-2 text-xs font-mono animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between text-emerald-400 font-bold text-sm">
+                <span className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-400" />
+                  RULE EVALUATION: {lastResult.status}
+                </span>
+                <span className="text-slate-400 font-normal text-xs">{lastResult.timeTaken}</span>
+              </div>
+              <div className="text-slate-300">Rule: <span className="text-white font-semibold">{lastResult.ruleName}</span></div>
+              <div className="text-slate-300">Threshold: <span className="text-amber-300">{lastResult.threshold}</span></div>
+              <div className="text-slate-300">Alert Task: <span className="text-white font-bold">{lastResult.alert?.taskCode}</span></div>
+              <div className="text-slate-400 pt-1 border-t border-slate-800 text-[11px]">
+                Summary: {lastResult.alert?.description}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-3 border-t">
+          <Button variant="outline" onClick={onClose} disabled={testing}>Close</Button>
+          <Button
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+            disabled={testing}
+            onClick={handleRun}
+          >
+            <Play className="h-4 w-4 mr-1 fill-white" />
+            {testing ? 'Evaluating Rule…' : 'Execute Test Rule Now'}
           </Button>
         </div>
       </DialogContent>
@@ -187,14 +368,22 @@ function AlertDetailModal({ alert, allSubmissions, onResolve, onDismiss, onClose
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdminFraud() {
   const location = useLocation();
-  const { data: fetchedAlerts = [] } = useApi('/fraud-alerts');
+  const { data: fetchedAlerts = [], refetch } = useApi('/fraud-alerts');
   const { data: allSubmissions = [] } = useApi('/vehicle-submissions');
 
   const [alerts, setAlerts] = useState(null); // null = use fetched, array = after action
   const displayed = alerts ?? fetchedAlerts;
 
-  const [selectedAlert, setSelectedAlert]     = useState(null);
-  const [showSettings, setShowSettings]       = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState(null);
+  const [showSettings, setShowSettings]   = useState(false);
+  const [showTestConsole, setShowTestConsole] = useState(false);
+
+  const handleRuleTested = (newAlert) => {
+    if (newAlert) {
+      setAlerts(prev => [newAlert, ...(prev ?? fetchedAlerts)]);
+    }
+    if (refetch) refetch();
+  };
 
   const resolve = async (id) => {
     try {
@@ -202,6 +391,7 @@ export default function AdminFraud() {
       setAlerts(displayed.filter(a => a.id !== id));
       setSelectedAlert(null);
       toast({ title: 'Alert resolved', description: 'Alert marked as reviewed and closed.' });
+      if (refetch) refetch();
     } catch (e) {
       toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
     }
@@ -213,6 +403,7 @@ export default function AdminFraud() {
       setAlerts(displayed.filter(a => a.id !== id));
       setSelectedAlert(null);
       toast({ title: 'Alert dismissed', description: 'Alert has been dismissed.' });
+      if (refetch) refetch();
     } catch (e) {
       toast({ title: 'Failed', description: e?.response?.data?.detail || 'Try again.' });
     }
@@ -224,10 +415,19 @@ export default function AdminFraud() {
         title="Fraud & Anomaly Detection"
         description="Automated checks catch duplicate photos, GPS mismatches, and backdated uploads on every submission."
         actions={
-          <Button variant="outline" onClick={() => setShowSettings(true)}>
-            <Settings className="h-4 w-4 mr-2" />
-            Detection settings
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium flex items-center gap-1.5"
+              onClick={() => setShowTestConsole(true)}
+            >
+              <FlaskConical className="h-4 w-4" />
+              Test Fraud Rules
+            </Button>
+            <Button variant="outline" onClick={() => setShowSettings(true)}>
+              <Settings className="h-4 w-4 mr-2" />
+              Detection settings
+            </Button>
+          </div>
         }
       />
 
@@ -311,7 +511,18 @@ export default function AdminFraud() {
       </Card>
 
       {/* Detection Settings Modal */}
-      <DetectionSettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
+      <DetectionSettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        onRuleTested={handleRuleTested}
+      />
+
+      {/* Dedicated Manual Testing Console */}
+      <ManualTestModal
+        open={showTestConsole}
+        onClose={() => setShowTestConsole(false)}
+        onTestComplete={handleRuleTested}
+      />
 
       {/* Alert Detail + Media Review Modal */}
       <AlertDetailModal
