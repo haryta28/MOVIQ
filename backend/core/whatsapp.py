@@ -6,6 +6,9 @@ from core.config import (
     WHATSAPP_API_URL,
     WATI_TOKEN,
     WATI_API_ENDPOINT,
+    TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN,
+    TWILIO_FROM_NUMBER,
 )
 
 logger = logging.getLogger(__name__)
@@ -85,9 +88,29 @@ def send_user_invite_whatsapp(to: str, name: str, role: str, email: str, passwor
 
 
 def send_text(to: str, text: str) -> None:
-    """Send a plain text message via WATI or Meta Cloud API."""
+    """Send a plain text message via Twilio, WATI, or Meta Cloud API."""
     clean_to = "".join(filter(str.isdigit, to))
     
+    # 0. Use Twilio WhatsApp API if configured
+    if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
+        try:
+            with httpx.Client(timeout=10) as client:
+                url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json"
+                auth = (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+                data = {
+                    "From": TWILIO_FROM_NUMBER if TWILIO_FROM_NUMBER.startswith("whatsapp:") else f"whatsapp:{TWILIO_FROM_NUMBER}",
+                    "To": f"whatsapp:+{clean_to}",
+                    "Body": text,
+                }
+                resp = client.post(url, auth=auth, data=data)
+                if resp.status_code in (200, 201):
+                    logger.info(f"✅ Sent Twilio WhatsApp message to +{clean_to}")
+                    return
+                else:
+                    logger.warning(f"Twilio message failed ({resp.status_code}): {resp.text}")
+        except Exception as e:
+            logger.error(f"Failed sending Twilio WhatsApp message: {e}")
+
     # 1. Use WATI API if configured
     if WATI_TOKEN and WATI_API_ENDPOINT:
         try:
@@ -127,8 +150,8 @@ def send_buttons(to: str, body: str, buttons: list[dict]) -> None:
     """Send interactive reply buttons or text fallback."""
     clean_to = "".join(filter(str.isdigit, to))
 
-    # 1. Use WATI API if configured
-    if WATI_TOKEN and WATI_API_ENDPOINT:
+    # 1. Use WATI API or Twilio if configured (text fallback)
+    if (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN) or (WATI_TOKEN and WATI_API_ENDPOINT):
         btn_text = "\n".join([f"• {b['title']}" for b in buttons])
         full_text = f"{body}\n\n{btn_text}"
         send_text(clean_to, full_text)
@@ -156,14 +179,15 @@ def send_buttons(to: str, body: str, buttons: list[dict]) -> None:
 
 
 def download_media(media_ref: str) -> bytes:
-    """Download a media object (image) from WATI URL or Meta Cloud API."""
+    """Download image bytes from Twilio URL, WATI URL, or Meta Graph API."""
     if not media_ref:
         raise ValueError("media_ref is empty — cannot download image")
     with httpx.Client(timeout=30) as client:
-        # If media_ref is an absolute HTTP/HTTPS URL (supplied directly by WATI webhooks)
+        # If media_ref is an absolute HTTP/HTTPS URL (supplied directly by Twilio/WATI webhooks)
         if media_ref.startswith("http://") or media_ref.startswith("https://"):
             headers = _wati_headers() if WATI_TOKEN else {}
-            resp = client.get(media_ref, headers=headers)
+            auth = (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID else None
+            resp = client.get(media_ref, headers=headers, auth=auth)
             return resp.content
 
         # Step 1: get the download URL from Meta Graph API

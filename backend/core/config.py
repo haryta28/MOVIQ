@@ -39,3 +39,9 @@ WEBHOOK_VERIFY_TOKEN: str     = os.environ.get("WEBHOOK_VERIFY_TOKEN", "moviq_we
 WATI_TOKEN: str               = os.environ.get("WATI_TOKEN", "")
 WATI_API_ENDPOINT: str        = os.environ.get("WATI_API_ENDPOINT", "").rstrip("/")
 
+# ── Twilio WhatsApp Sandbox ───────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID: str  = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN: str   = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM_NUMBER: str  = os.environ.get("TWILIO_FROM_NUMBER", "whatsapp:+14155238886")
+
+

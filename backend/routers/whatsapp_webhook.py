@@ -45,7 +45,16 @@ async def verify_webhook(request: Request):
 # ── Incoming messages (POST) ───────────────────────────────────────────────────
 @router.post("/webhook")
 async def receive_webhook(request: Request):
-    body = await request.json()
+    content_type = request.headers.get("content-type", "")
+    if "x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form_data = await request.form()
+        body = dict(form_data)
+    else:
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
     try:
         # Log incoming webhook to MongoDB for debugging
         await db.webhook_logs.insert_one({
@@ -63,7 +72,25 @@ async def receive_webhook(request: Request):
         loc_data = None
         media_ref = None
 
-        if "entry" in body:
+        if "From" in body and "whatsapp:" in str(body.get("From")):
+            # ── Twilio WhatsApp Sandbox Format ──
+            raw_from = str(body.get("From", ""))
+            phone = "".join(filter(str.isdigit, raw_from))
+            msg_id = str(body.get("MessageSid", uuid.uuid4().hex[:8]))
+            msg_text = str(body.get("Body", "")).strip()
+
+            if body.get("Latitude") and body.get("Longitude"):
+                mtype = "location"
+                loc_data = {
+                    "latitude": float(body.get("Latitude")),
+                    "longitude": float(body.get("Longitude")),
+                }
+            elif body.get("MediaUrl0"):
+                mtype = "image"
+                media_ref = str(body.get("MediaUrl0"))
+            else:
+                mtype = "text"
+        elif "entry" in body:
             # ── Meta Cloud API Format ──
             entry = body["entry"][0]
             changes = entry["changes"][0]["value"]
