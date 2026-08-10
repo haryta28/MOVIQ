@@ -29,6 +29,7 @@ from routers.analytics            import router as analytics_router
 from routers.notifications        import router as notifications_router
 from routers.health               import router as health_router
 from routers.whatsapp_webhook     import router as whatsapp_router
+from routers.field_upload         import router as field_upload_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,6 +68,7 @@ app.include_router(analytics_router,          prefix=P)
 app.include_router(notifications_router,      prefix=P)
 app.include_router(health_router,             prefix=P)
 app.include_router(whatsapp_router,           prefix=P)
+app.include_router(field_upload_router,       prefix=P)
 
 
 @app.get("/api")

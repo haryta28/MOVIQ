@@ -39,6 +39,7 @@ const WhatsAppBot   = lazy(() => import('./pages/whatsapp/WhatsAppBot'));
 
 // ── Lazy-loaded pages — Field capture PWA (public, mobile) ───────────────────
 const CaptureProof  = lazy(() => import('./pages/capture/CaptureProof'));
+const FieldUpload   = lazy(() => import('./pages/field/FieldUpload'));
 const AcceptInvite  = lazy(() => import('./pages/AcceptInvite'));
 const UserProfile   = lazy(() => import('./pages/UserProfile'));
 
@@ -103,6 +104,9 @@ function App() {
 
               {/* ── Field capture PWA — public, opened on field exec phone ── */}
               <Route path="/capture" element={<CaptureProof />} />
+
+              {/* ── Web Chat Field Upload — public, mobile-first ── */}
+              <Route path="/field-upload" element={<FieldUpload />} />
 
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
