@@ -95,7 +95,7 @@ function PhotoCapture({ step, onCapture, uploading }) {
   );
 }
 
-function TextInput({ placeholder, onSend, disabled, type = 'text', pattern }) {
+function TextInput({ placeholder, onSend, disabled, type = 'text' }) {
   const [val, setVal] = useState('');
   const submit = () => {
     if (val.trim()) { onSend(val.trim()); setVal(''); }
@@ -105,12 +105,12 @@ function TextInput({ placeholder, onSend, disabled, type = 'text', pattern }) {
       <input
         type={type}
         inputMode={type === 'tel' ? 'numeric' : 'text'}
-        pattern={pattern}
         value={val}
         onChange={e => setVal(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && submit()}
         placeholder={placeholder}
         disabled={disabled}
+        autoCapitalize={type === 'tel' ? 'none' : 'words'}
         className="flex-1 bg-white border border-slate-200 rounded-full px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition"
       />
       <button
@@ -126,18 +126,26 @@ function TextInput({ placeholder, onSend, disabled, type = 'text', pattern }) {
   );
 }
 
-// ── Step machine ──────────────────────────────────────────────────────────────
-const STEPS = ['welcome','vehicle','driver_name','driver_phone','location','photo_0','photo_1','photo_2','done'];
-
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function FieldUpload() {
-  const [messages, setMessages]         = useState([]);
-  const [step, setStep]                 = useState('welcome');
-  const [data, setData]                 = useState({ vehicle:'', driver_name:'', driver_phone:'', gps: null, photos:[] });
-  const [inputDisabled, setInputDisabled] = useState(true);
-  const [uploading, setUploading]       = useState(false);
-  const [showInput, setShowInput]       = useState(null); // 'text'|'tel'|'photo'
-  const [taskCode, setTaskCode]         = useState(null);
-  const bottomRef                       = useRef(null);
+  const [messages, setMessages]             = useState([]);
+  const [step, setStep]                     = useState('welcome');
+  const [vehicle, setVehicle]               = useState('');
+  const [driverName, setDriverName]         = useState('');
+  const [driverPhone, setDriverPhone]       = useState('');
+  const [gps, setGps]                       = useState(null);
+  // Use a ref for photos so closures always see the latest array
+  const photosRef                           = useRef([]);
+  const [photoCount, setPhotoCount]         = useState(0); // trigger re-renders
+  const [inputDisabled, setInputDisabled]   = useState(true);
+  const [uploading, setUploading]           = useState(false);
+  const [showInput, setShowInput]           = useState(null);
+  const [taskCode, setTaskCode]             = useState(null);
+  const bottomRef                           = useRef(null);
+
+  const addMsg = useCallback((msg) => {
+    setMessages(m => [...m, msg]);
+  }, []);
 
   const addBot = useCallback((text) => {
     setMessages(m => [...m, { role: 'bot', text }]);
@@ -146,7 +154,7 @@ export default function FieldUpload() {
   const addTyping = useCallback(async (text, delay = 800) => {
     setMessages(m => [...m, { role: 'bot', typing: true }]);
     await sleep(delay);
-    setMessages(m => m.slice(0, -1).concat({ role: 'bot', text }));
+    setMessages(m => [...m.slice(0, -1), { role: 'bot', text }]);
   }, []);
 
   const addUser = useCallback((text, image = null) => {
@@ -166,12 +174,15 @@ export default function FieldUpload() {
       await sleep(900);
       setMessages([{
         role: 'bot',
-        text: '👋 Hi! I\'m the MOVIQ Field Assistant.\n\nI\'ll guide you through submitting your vehicle branding proof. It takes about 2 minutes! 🚀'
+        text: "👋 Hi! I'm the MOVIQ Field Assistant.\n\nI'll guide you through submitting your vehicle branding proof. It takes about 2 minutes! 🚀"
       }]);
-      await sleep(600);
+      await sleep(500);
       setMessages(m => [...m, { role: 'bot', typing: true }]);
       await sleep(800);
-      setMessages(m => [...m.slice(0,-1), { role: 'bot', text: '📋 First, let\'s get your vehicle number.\n\nPlease type your vehicle registration number (e.g. KA-01-AB-1234):' }]);
+      setMessages(m => [
+        ...m.slice(0, -1),
+        { role: 'bot', text: '📋 First, let\'s get your vehicle number.\n\nPlease type your vehicle registration number (e.g. KA-01-AB-1234):' }
+      ]);
       setStep('vehicle');
       setShowInput({ type: 'text', placeholder: 'Enter vehicle number…' });
       setInputDisabled(false);
@@ -183,17 +194,18 @@ export default function FieldUpload() {
     setShowInput(null);
 
     if (step === 'vehicle') {
-      addUser(val);
-      setData(d => ({ ...d, vehicle: val.toUpperCase() }));
-      await addTyping(`✅ Got it — *${val.toUpperCase()}*\n\nNow, what is your full name?`, 700);
+      const v = val.trim().toUpperCase();
+      addUser(v);
+      setVehicle(v);
+      await addTyping(`✅ Got it — *${v}*\n\nNow, what is your full name?`, 700);
       setStep('driver_name');
       setShowInput({ type: 'text', placeholder: 'Enter your full name…' });
       setInputDisabled(false);
 
     } else if (step === 'driver_name') {
       addUser(val);
-      setData(d => ({ ...d, driver_name: val }));
-      await addTyping(`👤 Hello ${val}!\n\nPlease enter your WhatsApp/contact number:`, 700);
+      setDriverName(val.trim());
+      await addTyping(`👤 Hello ${val.trim()}!\n\nPlease enter your WhatsApp/contact number:`, 700);
       setStep('driver_phone');
       setShowInput({ type: 'tel', placeholder: 'Enter 10-digit mobile number…' });
       setInputDisabled(false);
@@ -207,7 +219,7 @@ export default function FieldUpload() {
         return;
       }
       addUser(digits);
-      setData(d => ({ ...d, driver_phone: digits }));
+      setDriverPhone(digits);
       await addTyping('📍 Great! Now please share your current location so we can verify your submission.', 700);
       setStep('location');
       setShowInput('location');
@@ -216,17 +228,18 @@ export default function FieldUpload() {
   };
 
   const handleLocation = () => {
+    setShowInput(null);
     if (!navigator.geolocation) {
-      addBot('⚠️ Location not supported on this device. Continuing without GPS…');
+      addBot('⚠️ Location not available. Continuing without GPS…');
       proceedToPhotos();
       return;
     }
     addBot('📡 Fetching your location…');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const gps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setData(d => ({ ...d, gps }));
-        addUser(`📍 Location shared (${gps.lat.toFixed(4)}, ${gps.lng.toFixed(4)})`);
+        const g = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setGps(g);
+        addUser(`📍 Location shared (${g.lat.toFixed(4)}, ${g.lng.toFixed(4)})`);
         proceedToPhotos();
       },
       () => {
@@ -235,17 +248,16 @@ export default function FieldUpload() {
       },
       { timeout: 8000 }
     );
-    setShowInput(null);
   };
 
   const skipLocation = () => {
+    setShowInput(null);
     addUser('Skip location');
     proceedToPhotos();
   };
 
   const proceedToPhotos = async () => {
-    setShowInput(null);
-    await sleep(200);
+    await sleep(300);
     await addTyping(
       '📸 Now let\'s capture 3 photos of the vehicle branding.\n\n📷 *Photo 1 of 3 — Right Side*\nStand on the right side of the vehicle and take the photo.',
       900
@@ -268,12 +280,27 @@ export default function FieldUpload() {
       formData.append('photo', file);
       formData.append('label', stepMeta.label);
 
-      const res = await fetch(`${API_BASE}/field-upload/upload-photo`, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Upload failed');
-      const photoData = await res.json();
+      const res = await fetch(`${API_BASE}/field-upload/upload-photo`, {
+        method: 'POST',
+        body: formData,
+        // No Content-Type header — browser sets it with boundary automatically for multipart
+      });
 
-      const updatedPhotos = [...data.photos, photoData];
-      setData(d => ({ ...d, photos: updatedPhotos }));
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          const errBody = await res.json();
+          errMsg = errBody.detail || errMsg;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+
+      const photoData = await res.json();
+      console.log('✅ Photo uploaded:', photoData);
+
+      // Use ref so we always have the latest accumulated photos (avoids stale closure)
+      photosRef.current = [...photosRef.current, photoData];
+      setPhotoCount(photosRef.current.length);
       setUploading(false);
 
       if (photoIdx < 2) {
@@ -286,34 +313,47 @@ export default function FieldUpload() {
         setShowInput('photo');
         setInputDisabled(false);
       } else {
-        // All 3 photos done — final submit
         await addTyping('✅ All 3 photos uploaded! Submitting your proof now…', 800);
-        await finalSubmit(updatedPhotos);
+        await finalSubmit(photosRef.current, vehicle, driverName, driverPhone, gps);
       }
     } catch (err) {
+      console.error('Photo upload error:', err);
       setUploading(false);
-      addBot(`❌ Photo upload failed. Please try again.\n${err.message}`);
+      addBot(`❌ Photo upload failed: ${err.message}\n\nPlease try again.`);
       setShowInput('photo');
       setInputDisabled(false);
     }
   };
 
-  const finalSubmit = async (photos) => {
+  const finalSubmit = async (photos, v, name, phone, location) => {
     try {
+      console.log('Submitting with photos:', photos.length, 'vehicle:', v);
       const formData = new FormData();
-      formData.append('vehicle', data.vehicle);
-      formData.append('driver_name', data.driver_name);
-      formData.append('driver_phone', data.driver_phone);
-      if (data.gps) {
-        formData.append('gps_lat', data.gps.lat);
-        formData.append('gps_lng', data.gps.lng);
+      formData.append('vehicle', v);
+      formData.append('driver_name', name);
+      formData.append('driver_phone', phone);
+      if (location) {
+        formData.append('gps_lat', location.lat);
+        formData.append('gps_lng', location.lng);
       }
       formData.append('photo_urls', JSON.stringify(photos));
 
-      const res = await fetch(`${API_BASE}/field-upload/submit`, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Submission failed');
-      const result = await res.json();
+      const res = await fetch(`${API_BASE}/field-upload/submit`, {
+        method: 'POST',
+        body: formData,
+      });
 
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          const errBody = await res.json();
+          errMsg = errBody.detail || errMsg;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+
+      const result = await res.json();
+      console.log('✅ Submission complete:', result);
       setTaskCode(result.taskCode);
       setStep('done');
       setShowInput(null);
@@ -322,16 +362,20 @@ export default function FieldUpload() {
         1000
       );
     } catch (err) {
-      addBot(`❌ Submission failed. Please try again later.\n${err.message}`);
+      console.error('Submission error:', err);
+      addBot(`❌ Submission failed: ${err.message}\n\nPlease try again or contact your supervisor.`);
     }
   };
 
   const photoIdx = step.startsWith('photo_') ? parseInt(step.slice(-1)) : null;
 
+  const STEPS_LIST = ['welcome','vehicle','driver_name','driver_phone','location','photo_0','photo_1','photo_2','done'];
+  const stepIdx = STEPS_LIST.indexOf(step);
+
   return (
     <div
-      className="flex flex-col h-dvh bg-slate-50 font-sans"
-      style={{ maxWidth: 480, margin: '0 auto' }}
+      className="flex flex-col bg-slate-50 font-sans"
+      style={{ height: '100dvh', maxWidth: 480, margin: '0 auto' }}
     >
       {/* ── Header ── */}
       <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 shrink-0 shadow-sm">
@@ -345,20 +389,21 @@ export default function FieldUpload() {
             <span className="text-xs text-emerald-600 font-medium">Online</span>
           </div>
         </div>
-        {/* Progress dots */}
-        <div className="flex gap-1">
-          {STEPS.slice(1, -1).map((s, i) => (
-            <div
-              key={s}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                STEPS.indexOf(step) > i + 1
-                  ? 'bg-indigo-500'
-                  : STEPS.indexOf(step) === i + 1
-                  ? 'bg-indigo-300'
-                  : 'bg-slate-200'
-              }`}
-            />
-          ))}
+        {/* Progress indicator */}
+        <div className="flex flex-col items-end gap-0.5">
+          <div className="flex gap-1">
+            {[1,2,3,4,5,6,7].map((i) => (
+              <div
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  stepIdx > i ? 'bg-indigo-500' : stepIdx === i ? 'bg-indigo-300' : 'bg-slate-200'
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] text-slate-400">
+            {photoCount > 0 ? `${photoCount}/3 photos` : ''}
+          </span>
         </div>
       </div>
 
@@ -427,7 +472,10 @@ export default function FieldUpload() {
 
         {step === 'done' && (
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              photosRef.current = [];
+              window.location.reload();
+            }}
             className="w-full py-3 bg-slate-100 text-slate-600 font-medium rounded-full text-sm active:bg-slate-200"
           >
             Submit Another Vehicle

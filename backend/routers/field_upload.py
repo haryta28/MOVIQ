@@ -18,6 +18,18 @@ from core.helpers import _clean, create_notification
 router = APIRouter(prefix="/field-upload", tags=["field-upload"])
 
 
+@router.get("/ping")
+async def ping():
+    """Public health check — verifies Cloudinary env vars are present."""
+    import os
+    return {
+        "status": "ok",
+        "cloudinary_cloud": bool(os.environ.get("CLOUDINARY_CLOUD_NAME")),
+        "cloudinary_key":   bool(os.environ.get("CLOUDINARY_API_KEY")),
+        "cloudinary_secret": bool(os.environ.get("CLOUDINARY_API_SECRET")),
+    }
+
+
 @router.post("/upload-photo")
 async def upload_photo(
     photo: UploadFile = File(...),
